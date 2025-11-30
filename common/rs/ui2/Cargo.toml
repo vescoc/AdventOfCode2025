@@ -1,0 +1,18 @@
+[package]
+name = "rsui"
+version.workspace = true
+edition.workspace = true
+
+[features]
+stdweb = ["instant/stdweb"]
+wasm-bindgen = ["instant/wasm-bindgen"]
+
+[dependencies]
+gloo-console.workspace = true
+gloo-worker.workspace = true
+yew.workspace = true
+web-sys.workspace = true
+instant.workspace = true
+
+[lints]
+workspace = true

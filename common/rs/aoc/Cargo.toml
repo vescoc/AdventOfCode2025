@@ -1,0 +1,13 @@
+[package]
+name = "aoc"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono.workspace = true
+dirs.workspace = true
+reqwest.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true

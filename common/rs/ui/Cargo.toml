@@ -1,0 +1,16 @@
+[package]
+name = "ui"
+version.workspace = true
+edition.workspace = true
+
+[features]
+stdweb = ["instant/stdweb"]
+wasm-bindgen = ["instant/wasm-bindgen"]
+
+[dependencies]
+web-sys.workspace = true
+yew.workspace = true
+instant.workspace = true
+
+[lints]
+workspace = true
