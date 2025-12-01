@@ -1,6 +1,6 @@
 use std::hint;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use day01 as day;
 
@@ -16,6 +16,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
     group.finish();
 }
-    
+
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);

@@ -8,7 +8,7 @@ fn main() {
 
     #[cfg(not(feature = "input"))]
     let input = &std::io::read_to_string(std::io::stdin()).expect("cannot read input");
-    
+
     let now = Instant::now();
 
     println!("part 1: {}", day::part_1(input));
@@ -16,7 +16,7 @@ fn main() {
 
     let elapsed = now.elapsed();
     println!(
-        "elapsed: {}ms ({}us, {}ns)",
+        "elapsed: {}ms ({}µs, {}ns)",
         elapsed.as_millis(),
         elapsed.as_micros(),
         elapsed.as_nanos()
