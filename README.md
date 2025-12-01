@@ -10,11 +10,22 @@ https://adventofcode.com/2025
   Support/adventofcode.session`) or `{FOLDERID_RoamingAppData}`
   (Windows, example:
   `C:\Users\Alice\AppData\Roamingadventofcode.session`) and copy the
-  cookie (esample: `53616...`).
+  cookie (esample: `53616...`)
+- Testing a single day:
+```bash
+cargo test -p dayXY
+```
+- Running a single day (release):
+```bash
+cargo run -p dayXY -r
+```
+- Bench a single day:
+```bash
+cargo bench -p dayXY
+```
 
 ## Building wasm32-unknown-unknown
 ```bash
-cd days/dayXY/rsui
-trunk build --release --filehash false --public-url /AdventOfCode2025/dayXY
+cd days/dayXY/rsui && trunk build --release --filehash false --public-url /AdventOfCode2025/dayXY
 ```
 
