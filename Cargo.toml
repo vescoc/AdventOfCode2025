@@ -8,6 +8,9 @@ members = [
 
     "days/day01/rs",
     "days/day01/rsui",
+
+    "days/day02/rs",
+    "days/day02/rsui",
     
 ]
 resolver = "3"
@@ -36,7 +39,7 @@ thiserror = "2.0.12"
 toml = "0.9.4"
 criterion = { version = "0.7", features = ["html_reports"] }
 itertools = "0.14.0"
-heapless = "0.9.1"
+heapless = "0.9.2"
 gcd = "2.3.0"
 imageproc = "0.25"
 clap = { version = "4.5", features = ["derive"] }
@@ -54,6 +57,7 @@ ui = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 
 day01 = { path = "days/day01/rs", default-features = false }
+day02 = { path = "days/day02/rs", default-features = false }
 
 [workspace.lints.clippy]
 pedantic = "deny"

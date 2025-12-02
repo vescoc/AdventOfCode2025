@@ -1,3 +1,5 @@
+#![no_std]
+
 /// # Panics
 #[must_use]
 pub fn part_1(data: &str) -> usize {
