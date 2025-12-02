@@ -27,5 +27,4 @@ harness = false
 workspace = true
 
 [dependencies]
-heapless.workspace = true
 rayon = { workspace = true, optional = true }
