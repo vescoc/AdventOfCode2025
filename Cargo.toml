@@ -12,6 +12,9 @@ members = [
     "days/day02/rs",
     "days/day02/rsui",
     
+    "days/day03/rs",
+    "days/day03/rsui",
+    
 ]
 resolver = "3"
 
@@ -58,6 +61,7 @@ ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 
 day01 = { path = "days/day01/rs", default-features = false }
 day02 = { path = "days/day02/rs", default-features = false }
+day03 = { path = "days/day03/rs", default-features = false }
 
 [workspace.lints.clippy]
 pedantic = "deny"

@@ -1,0 +1,18 @@
+label {
+    display: block;
+}
+
+.panel {
+    display: flex;
+}
+
+.output {
+    display: grid;
+    margin: 2px 2px 2px 2px;
+    border-style: solid;
+    overflow: auto;
+}
+
+.result {
+    display: inline-flex;
+}

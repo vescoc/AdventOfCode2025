@@ -1,0 +1,30 @@
+[package]
+name = "day03"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["input", "rayon"]
+
+"input" = []
+"rayon" = ["dep:rayon"]
+
+[package.metadata.aoc]
+year = 2025
+day = 3
+
+[dev-dependencies]
+criterion.workspace = true
+
+[build-dependencies]
+aoc.workspace = true
+
+[[bench]]
+name = "bench"
+harness = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rayon = { workspace = true, optional = true }
