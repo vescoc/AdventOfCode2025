@@ -1,3 +1,5 @@
+#![no_std]
+
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
@@ -54,20 +56,33 @@ pub fn part_1(data: &str) -> usize {
 
 /// # Panics
 #[must_use]
+#[allow(clippy::large_stack_arrays)]
 pub fn part_2(data: &str) -> usize {
-    let mut data = data.trim().as_bytes().to_vec();
+    let data = data.trim().as_bytes();
     let columns = data
         .iter()
         .position(|tile| *tile == b'\n')
         .expect("invalid input");
-    let rows = (data.len() + 1) / (columns + 1);
+    let len = data.len();
+    let rows = (len + 1) / (columns + 1);
+
+    let mut buffer = [[0u8; 141 * 141]; 2];
+
+    buffer[0][0..len].copy_from_slice(data);
 
     let mut result = 0;
-    loop {
-        let mut next = data.clone();
-        let count = {
-            let data = &data;
+    for i in core::iter::repeat(0..=1).flatten() {
+        let (data, next) = {
+            let (a, b) = buffer.split_first_mut().unwrap();
+            if i == 0 {
+                (a, &mut b[0])
+            } else {
+                (&mut b[0], a)
+            }
+        };
 
+        next[..len].copy_from_slice(&data[..len]);
+        let count = {
             #[cfg(feature = "rayon")]
             let i = data
                 .par_chunks(columns + 1)
@@ -80,7 +95,7 @@ pub fn part_2(data: &str) -> usize {
                 .enumerate()
                 .map(|(y, (data_row, next_row))| {
                     let mut count = 0;
-                    for (x, (tile, next)) in data_row
+                    for (x, (tile, next_tile)) in data_row
                         .iter()
                         .zip(next_row.iter_mut())
                         .take(columns)
@@ -97,7 +112,7 @@ pub fn part_2(data: &str) -> usize {
                             })
                             .count() < 4;
                         if r {
-                            *next = b'.';
+                            *next_tile = b'.';
                             count += 1;
                         }
                     }
@@ -111,8 +126,9 @@ pub fn part_2(data: &str) -> usize {
         }
 
         result += count;
-        data = next;
     }
+
+    unreachable!()
 }
 
 #[cfg(test)]
