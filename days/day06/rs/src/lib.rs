@@ -11,19 +11,11 @@ pub fn part_1(data: &str) -> u64 {
     let rows = (table.len() - 1) / columns;
 
     let parse = |slice: &[u8]| {
-        let mut exp = 1;
-        let mut num = 0;
-        for &digit in slice.iter().rev() {
-            match digit {
-                c if c.is_ascii_digit() => {
-                    num += u64::from(c - b'0') * exp;
-                    exp *= 10;
-                }
-                b' ' => {}
-                c => unreachable!("'{slice:?}': '{}'", c as char),
-            }
-        }
-        num
+        slice.iter().fold(0, |num, &digit| match digit {
+            c if c.is_ascii_digit() => num * 10 + u64::from(c - b'0'),
+            b' ' => num,
+            c => unreachable!("'{slice:?}': '{}'", c as char),
+        })
     };
 
     let ops = &table[(rows - 1) * (columns + 1)..];
@@ -70,19 +62,11 @@ pub fn part_2(data: &str) -> u64 {
     let rows = (table.len() - 1) / columns;
 
     let parse = |column| {
-        let mut exp = 1;
-        let mut num = 0;
-        for row in (0..rows - 1).rev() {
-            match table[row * (columns + 1) + column] {
-                c if c.is_ascii_digit() => {
-                    num += u64::from(c - b'0') * exp;
-                    exp *= 10;
-                }
-                b' ' => {}
-                c => unreachable!("({row}, {column}): '{}'", c as char),
-            }
-        }
-        num
+        (0..rows - 1).fold(0, |num, row| match table[row * (columns + 1) + column] {
+            c if c.is_ascii_digit() => num * 10 + u64::from(c - b'0'),
+            b' ' => num,
+            c => unreachable!("({row}, {column}): '{}'", c as char),
+        })
     };
 
     let ops = &table[(rows - 1) * (columns + 1)..];
