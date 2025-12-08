@@ -1,0 +1,52 @@
+[package]
+name = "embedded-aoc"
+version.workspace = true
+edition.workspace = true
+
+[features]
+defmt = ["dep:defmt"]
+log = ["dep:log"]
+
+blocking = ["dep:embedded-io"]
+nonblocking = ["dep:embedded-io-async", "dep:static_cell"]
+
+day01 = ["dep:day01"]
+day02 = ["dep:day02"]
+day03 = ["dep:day03"]
+day04 = ["dep:day04"]
+day05 = ["dep:day05"]
+day06 = ["dep:day06"]
+day07 = ["dep:day07"]
+day08 = ["dep:day08"]
+
+alldays = [
+    "day01",
+    "day02",
+    "day03",
+    "day04",
+    "day05",
+    "day06",
+    "day07",
+    "day08"
+]    
+
+[dependencies]
+defmt = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+heapless.workspace = true
+fugit.workspace = true
+embedded-io = { workspace = true, optional = true }
+embedded-io-async = { workspace = true, optional = true }
+static_cell = { workspace = true, optional = true }
+
+day01 = { workspace = true, optional = true }
+day02 = { workspace = true, optional = true }
+day03 = { workspace = true, optional = true }
+day04 = { workspace = true, optional = true }
+day05 = { workspace = true, optional = true }
+day06 = { workspace = true, optional = true }
+day07 = { workspace = true, optional = true }
+day08 = { workspace = true, optional = true }
+
+[lints]
+workspace = true

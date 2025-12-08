@@ -36,13 +36,11 @@ pub fn part_2(data: &str) -> i64 {
 
             let rotated = current + dir * rotations;
             current = rotated.rem_euclid(100);
-            let count = if dir > 0 {
+            if dir > 0 {
                 rotated / 100
             } else {
                 i64::from(current == 0) - rotated.div_euclid(100) - i64::from(old == 0)
-            };
-
-            count
+            }
         })
         .sum()
 }

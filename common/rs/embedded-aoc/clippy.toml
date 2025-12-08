@@ -1,0 +1,3 @@
+stack-size-threshold = 40000
+array-size-threshold = 37000
+future-size-threshold = 30000

@@ -1,0 +1,8 @@
+[package]
+name = "cdcacm-io"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+embedded-io-async.workspace = true
+embassy-usb.workspace = true

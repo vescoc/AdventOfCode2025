@@ -6,6 +6,11 @@ members = [
     "common/rs/bitset",
     "common/rs/mem",
 
+    "common/rs/cdcacm-io",
+    "common/rs/embedded-aoc",
+
+    "embedded/rp-pico2",
+
     "days/day01/rs",
     "days/day01/rsui",
 
@@ -70,9 +75,19 @@ instant = { version = "0.1", features = ["wasm-bindgen"] }
 gloo-console = "0.3"
 gloo-worker = "0.5"
 
+embedded-io-async = "0.6.1"
+embedded-io = "0.6.1"
+embassy-usb = "0.5.1"
+defmt = "1"
+log = "0.4"
+fugit = "0.3"
+static_cell = "2.1.0"
+
 aoc = { path = "common/rs/aoc" }
 ui = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
+
+cdcacm-io = { path = "common/rs/cdcacm-io" }
 
 day01 = { path = "days/day01/rs", default-features = false }
 day02 = { path = "days/day02/rs", default-features = false }
@@ -85,7 +100,11 @@ day08 = { path = "days/day08/rs", default-features = false }
 
 [workspace.lints.clippy]
 pedantic = "deny"
+large_stack_frames = "deny"
+large_stack_arrays = "deny"
+large_futures = "deny"
 
 [profile.release]
 debug = true
 codegen-units = 1
+lto = 'fat'
