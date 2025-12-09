@@ -641,6 +641,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "day09"
+version = "0.1.0"
+dependencies = [
+ "aoc",
+ "criterion",
+ "rayon",
+]
+
+[[package]]
+name = "day09ui"
+version = "0.1.0"
+dependencies = [
+ "day09",
+ "ui",
+ "yew",
+]
+
+[[package]]
 name = "debug-helper"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -971,6 +989,7 @@ dependencies = [
  "day06",
  "day07",
  "day08",
+ "day09",
  "defmt 1.0.1",
  "embedded-io",
  "embedded-io-async",
