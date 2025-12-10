@@ -1,0 +1,10 @@
+[package]
+name = "day10ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+yew.workspace = true
+ui.workspace = true
+
+day10.workspace = true
