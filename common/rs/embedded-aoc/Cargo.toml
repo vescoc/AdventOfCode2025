@@ -19,6 +19,8 @@ day06 = ["dep:day06"]
 day07 = ["dep:day07"]
 day08 = ["dep:day08"]
 day09 = ["dep:day09"]
+day10 = ["dep:day10"]
+day11 = ["dep:day11"]
 
 alldays = [
     "day01",
@@ -30,6 +32,8 @@ alldays = [
     "day07",
     "day08",
     "day09",
+#    "day10",
+    "day11",
 ]    
 
 [dependencies]
@@ -50,6 +54,8 @@ day06 = { workspace = true, optional = true }
 day07 = { workspace = true, optional = true }
 day08 = { workspace = true, optional = true }
 day09 = { workspace = true, optional = true }
+day10 = { workspace = true, optional = true }
+day11 = { workspace = true, optional = true }
 
 [lints]
 workspace = true
