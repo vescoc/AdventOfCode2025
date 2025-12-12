@@ -60,6 +60,8 @@ pub enum Day {
     Day10,
     #[cfg(feature = "day11")]
     Day11,
+    #[cfg(feature = "day12")]
+    Day12,
 }
 
 #[cfg(any(feature = "blocking", feature = "nonblocking"))]
@@ -92,6 +94,8 @@ impl Day {
             Day::Day10 => Self::to_string(result, day10::part_1(input)),
             #[cfg(feature = "day11")]
             Day::Day11 => Self::to_string(result, day11::part_1(input)),
+            #[cfg(feature = "day12")]
+            Day::Day12 => Self::to_string(result, day12::part_1(input)),
         }
     }
 
@@ -119,6 +123,8 @@ impl Day {
             Day::Day10 => Self::to_string(result, day10::part_2(input)),
             #[cfg(feature = "day11")]
             Day::Day11 => Self::to_string(result, day11::part_2(input)),
+            #[cfg(feature = "day12")]
+            Day::Day12 => Self::to_string(result, "NO PART 2"),
         }
     }
 }
@@ -153,6 +159,8 @@ impl core::str::FromStr for Day {
             Some(10) => Ok(Day::Day10),
             #[cfg(feature = "day11")]
             Some(11) => Ok(Day::Day11),
+            #[cfg(feature = "day12")]
+            Some(12) => Ok(Day::Day12),
             Some(_) => Err("invalid day"),
             None => Err("invalid number"),
         }
@@ -185,6 +193,8 @@ impl fmt::Display for Day {
             Day::Day10 => 10,
             #[cfg(feature = "day11")]
             Day::Day11 => 11,
+            #[cfg(feature = "day12")]
+            Day::Day12 => 12,
         };
 
         write!(f, "{day:02}")

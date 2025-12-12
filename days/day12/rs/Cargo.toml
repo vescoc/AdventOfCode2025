@@ -1,0 +1,28 @@
+[package]
+name = "day12"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["input"]
+
+"input" = []
+
+[package.metadata.aoc]
+year = 2025
+day = 12
+
+[dev-dependencies]
+criterion.workspace = true
+
+[build-dependencies]
+aoc.workspace = true
+
+[[bench]]
+name = "bench"
+harness = false
+
+[lints]
+workspace = true
+
+[dependencies]

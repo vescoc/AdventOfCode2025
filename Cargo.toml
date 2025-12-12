@@ -44,6 +44,9 @@ members = [
     "days/day11/rs",
     "days/day11/rsui",
     
+    "days/day12/rs",
+    "days/day12/rsui",
+    
 ]
 resolver = "3"
 
@@ -109,6 +112,7 @@ day08 = { path = "days/day08/rs", default-features = false }
 day09 = { path = "days/day09/rs", default-features = false }
 day10 = { path = "days/day10/rs", default-features = false }
 day11 = { path = "days/day11/rs", default-features = false }
+day12 = { path = "days/day12/rs", default-features = false }
 
 [workspace.lints.clippy]
 pedantic = "deny"
