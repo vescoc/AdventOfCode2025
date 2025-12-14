@@ -4,8 +4,8 @@ mod simplex;
 use set::Set;
 pub use simplex::*;
 
-const LOG: bool = false;
-const RESULT_LOG: bool = false;
+const LOG: bool = true;
+const LOG_RESULT: bool = true;
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -61,7 +61,14 @@ pub fn part_1(data: &str) -> u64 {
 
 /// # Panics
 #[must_use]
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::unused_enumerate_index, clippy::used_underscore_binding)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unused_enumerate_index,
+    clippy::used_underscore_binding,
+    clippy::similar_names,
+    clippy::too_many_lines
+)]
 pub fn part_2(data: &str) -> u64 {
     data.lines()
         .enumerate()
@@ -96,10 +103,12 @@ pub fn part_2(data: &str) -> u64 {
 
             let levels = levels.unwrap();
 
-            let mut eqc = vec![1.0; buttons.len() + 1];
-            eqc[buttons.len()] = 0.0;
+            let eqc = (0..buttons.len())
+                .map(|_| 1.0)
+                .chain(core::iter::once(0.0))
+                .collect::<Vec<_>>();
 
-            let mut eqs = levels
+            let eqs = levels
                 .iter()
                 .enumerate()
                 .map(|(i, level)| {
@@ -111,18 +120,107 @@ pub fn part_2(data: &str) -> u64 {
                 })
                 .collect::<Vec<_>>();
 
-            let mut eqs = core::iter::once(eqc.as_mut_slice())
-                .chain(eqs.iter_mut().map(Vec::as_mut_slice))
-                .collect::<Vec<_>>();
+            let mut result = 1e10f64;
 
-            let mut bases = [None; 16];
-            let r = simplex_eqs(&mut bases, &mut eqs, None::<&mut [()]>).ceil();
+            let mut stack = vec![];
+            stack.push((eqc.clone(), eqs.clone()));
+            while let Some((eqc, eqs)) = stack.pop() {
+                let mut current_eqc = eqc.clone();
+                let mut current_eqs = eqs.clone();
 
-            if RESULT_LOG {
-                println!("{_i}: {r:.1}");
+                let mut current_eqs = core::iter::once(current_eqc.as_mut_slice())
+                    .chain(current_eqs.iter_mut().map(Vec::as_mut_slice))
+                    .collect::<Vec<_>>();
+
+                let mut bases = [None; 64];
+                let Some(r) = simplex_eqs(&mut bases, &mut current_eqs, None::<&mut [()]>) else {
+                    continue;
+                };
+                if r >= result {
+                    continue;
+                }
+
+                let check_i = bases.iter().enumerate().find_map(|(x, n)| {
+                    n.and_then(|n| {
+                        let v = current_eqs[n + 1].last().unwrap();
+                        if (v.round() - v).abs() > 1e-6 {
+                            Some((x, v))
+                        } else {
+                            None
+                        }
+                    })
+                });
+
+                if let Some((x, v)) = check_i {
+                    assert!(*v >= 0.0, "{v}");
+
+                    if LOG {
+                        println!("check_i: {:?}", (x, v));
+                    }
+
+                    {
+                        let eqc = eqc
+                            .iter()
+                            .copied()
+                            .chain(core::iter::once(0.0))
+                            .collect::<Vec<_>>();
+
+                        let eq = (0..eqc.len() - 2)
+                            .map(|i| if i == x { 1.0 } else { 0.0 })
+                            .chain([1.0, v.floor()])
+                            .collect::<Vec<_>>();
+
+                        let eqs = eqs
+                            .iter()
+                            .map(|v| {
+                                v.iter()
+                                    .take(v.len() - 1)
+                                    .copied()
+                                    .chain([0.0, v[v.len() - 1]])
+                                    .collect::<Vec<_>>()
+                            })
+                            .chain(core::iter::once(eq))
+                            .collect::<Vec<_>>();
+
+                        stack.push((eqc, eqs));
+                    }
+
+                    {
+                        let eqc = eqc
+                            .iter()
+                            .copied()
+                            .chain(core::iter::once(0.0))
+                            .collect::<Vec<_>>();
+
+                        let eq = (0..eqc.len() - 2)
+                            .map(|i| if i == x { 1.0 } else { 0.0 })
+                            .chain([-1.0, v.ceil()])
+                            .collect::<Vec<_>>();
+
+                        let eqs = eqs
+                            .iter()
+                            .map(|v| {
+                                v.iter()
+                                    .take(v.len() - 1)
+                                    .copied()
+                                    .chain([0.0, v[v.len() - 1]])
+                                    .collect::<Vec<_>>()
+                            })
+                            .chain(core::iter::once(eq))
+                            .collect::<Vec<_>>();
+
+                        stack.push((eqc, eqs));
+                    }
+                } else {
+                    result = result.min(r.floor());
+                }
             }
 
-            r as u64
+            if LOG_RESULT {
+                println!("{_i}: {result:.1}");
+            }
+
+            result as u64
         })
         .sum()
 }
@@ -143,5 +241,15 @@ mod tests {
     #[test]
     fn test_part_2() {
         assert_eq!(part_2(INPUT), 33);
+    }
+
+    #[test]
+    fn test_part_2_bad() {
+        assert_eq!(
+            part_2(
+                "[##....#.] (5) (2,6) (0,3,4,7) (0,1,2,4,6) (0,2,5,7) (0,1,2,3,6) (2,4,5) (0,6) (2,3,4,7) (1,5,7) {59,23,42,27,39,21,40,32}"
+            ),
+            82,
+        );
     }
 }

@@ -9,7 +9,7 @@ pub trait BaseMap {
     fn base(&self, x: usize) -> Option<usize>;
     fn base_in(&mut self, x: usize, n: usize);
     fn base_out(&mut self, x: usize);
-    fn equation(&self, n: usize) -> Option<usize>;
+    fn base_for_equation(&self, n: usize) -> Option<usize>;
     fn is_base(&self, x: usize) -> bool;
     fn reset(&mut self);
 }
@@ -27,14 +27,12 @@ impl<const SIZE: usize> BaseMap for [Option<usize>; SIZE] {
         self[x] = None;
     }
 
-    fn equation(&self, n: usize) -> Option<usize> {
-        self.iter().position(|e| {
-            matches!(e, Some(v) if *v == n)
-        })
+    fn base_for_equation(&self, n: usize) -> Option<usize> {
+        self.iter().position(|e| matches!(e, Some(v) if *v == n))
     }
 
     fn is_base(&self, x: usize) -> bool {
-        self.get(x).map(|v| v.is_some()).unwrap_or_default()
+        self.get(x).is_some_and(Option::is_some)
     }
 
     fn reset(&mut self) {
@@ -55,7 +53,7 @@ pub fn simplex_eqs<T>(
     bases: &mut (impl BaseMap + core::fmt::Debug),
     eqs: &mut [&mut [f64]],
     tags: Option<&mut [T]>,
-) -> f64 {
+) -> Option<f64> {
     if LOG {
         println!("start");
         for eq in eqs.iter() {
@@ -64,8 +62,10 @@ pub fn simplex_eqs<T>(
     }
 
     bases.reset();
-    
-    reduce(bases, &mut eqs[1..], tags);
+
+    if !reduce(bases, &mut eqs[1..], tags) {
+        return None;
+    }
 
     if LOG {
         println!("reduce {bases:?}");
@@ -74,7 +74,9 @@ pub fn simplex_eqs<T>(
         }
     }
 
-    change_bases(bases, &mut eqs[1..]);
+    if !change_bases(bases, &mut eqs[1..]) {
+        return None;
+    }
 
     if LOG {
         println!("change bases {bases:?}");
@@ -106,9 +108,9 @@ pub fn simplex_eqs<T>(
         if LOG {
             println!("working on {base_in}");
         }
-        
+
         let (i, _) = find(&eqs[1..], base_in).expect("???");
-        let base_out = bases.equation(i).expect("cannot find base on {i}");
+        let base_out = bases.base_for_equation(i).expect("cannot find base on {i}");
 
         assert!(base_in != base_out);
 
@@ -132,7 +134,7 @@ pub fn simplex_eqs<T>(
         }
     }
 
-    -eqs[0][len - 1]
+    Some(-eqs[0][len - 1])
 }
 
 /// # Errors
@@ -141,7 +143,7 @@ pub fn simplex<const SIZE: usize, T>(
     data: &mut [f64],
     partitions: &[ops::Range<usize>],
     tags: Option<&mut [T]>,
-) -> Result<f64, Error> {
+) -> Result<Option<f64>, Error> {
     partition::<SIZE, _, _>(data, partitions, move |eqs| simplex_eqs(bases, eqs, tags))
 }
 
@@ -204,35 +206,37 @@ pub unsafe fn partition_unsafe<'a, const SIZE: usize, T, U>(
     })
 }
 
-fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) {
+fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) -> bool {
     while let Some(((i, new_base), _)) = equations
         .iter()
         .enumerate()
         .filter_map(|(n, eq)| {
-            eq.last().and_then(|&b| {
-                if b < -EPS {
-                    eq.iter()
-                        .take(eq.len() - 1)
-                        .enumerate()
-                        .filter_map(|(i, &v)| {
-                            if !bases.is_base(i) && v < -EPS {
-                                Some(((n, i), b / v))
-                            } else {
-                                None
-                            }
-                        })
-                        .max_by(|&(_, a), &(_, b)| (a).partial_cmp(&b).unwrap())
-                } else {
-                    None
-                }
+            bases.base_for_equation(n).and_then(|_| {
+                eq.last().and_then(|&b| {
+                    if b < -EPS {
+                        eq.iter()
+                            .take(eq.len() - 1)
+                            .enumerate()
+                            .filter_map(|(i, &v)| {
+                                if !bases.is_base(i) && v < -EPS {
+                                    Some(((n, i), b / v))
+                                } else {
+                                    None
+                                }
+                            })
+                            .max_by(|&(_, a), &(_, b)| (a).partial_cmp(&b).unwrap())
+                    } else {
+                        None
+                    }
+                })
             })
         })
         .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
     {
-        let old_base = bases.equation(i).expect("cannot find base on {i}");
+        let old_base = bases.base_for_equation(i).expect("cannot find base on {i}");
 
         assert!(old_base != new_base);
-        
+
         pivot(equations, i, new_base);
 
         bases.base_out(old_base);
@@ -242,6 +246,11 @@ fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) {
             println!("change base from {old_base} to {new_base}");
         }
     }
+
+    equations
+        .iter()
+        .enumerate()
+        .all(|(n, eq)| bases.base_for_equation(n).is_none() || eq[eq.len() - 1] > -EPS)
 }
 
 fn pivot(equations: &mut [&mut [f64]], i: usize, j: usize) {
@@ -292,12 +301,12 @@ fn tableau(bases: &impl BaseMap, eqc: &mut [f64], equations: &[&mut [f64]]) {
 }
 
 #[allow(clippy::many_single_char_names)]
-fn reduce<T>(bases: &mut impl BaseMap, equations: &mut [&mut [f64]], mut tags: Option<&mut [T]>) {
+fn reduce<T>(
+    bases: &mut impl BaseMap,
+    equations: &mut [&mut [f64]],
+    mut tags: Option<&mut [T]>,
+) -> bool {
     let n = equations.len();
-    if n == 0 {
-        return;
-    }
-
     let k = equations[0].len();
 
     let mut i = 0;
@@ -313,12 +322,12 @@ fn reduce<T>(bases: &mut impl BaseMap, equations: &mut [&mut [f64]], mut tags: O
         };
 
         bases.base_in(j, i);
-        
+
         equations.swap(r, 0);
         if let Some(tags) = tags.as_mut() {
             tags.swap(r, 0);
         }
-        
+
         let value = equations[0][j];
         for e in equations[0].iter_mut() {
             *e /= value;
@@ -345,11 +354,21 @@ fn reduce<T>(bases: &mut impl BaseMap, equations: &mut [&mut [f64]], mut tags: O
         i += 1;
         j += 1;
     }
+
+    equations
+        .iter()
+        .all(|eq| eq[k - 1].abs() < EPS || eq.iter().take(k - 1).any(|v| v.abs() >= EPS))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    macro_rules! assert_eq_float {
+        ($e1:expr, $e2:expr) => {
+            assert!(($e1 - $e2).abs() < EPS, "{} != {}", $e1, $e2);
+        };
+    }
 
     #[test]
     fn test_reduce_1() {
@@ -390,7 +409,7 @@ mod test {
     #[test]
     fn test_simplex_4() {
         let mut bases = [None; 4];
-        
+
         #[rustfmt::skip]
         let mut data = [
             1.0, 1.0, 1.0, 1.0, 0.0,
@@ -410,7 +429,7 @@ mod test {
                 &[0..5, 5..10, 10..15, 15..20, 20..25, 25..30, 30..35,],
                 Some(&mut tags),
             ),
-            Ok(43.0),
+            Ok(Some(43.0)),
         );
     }
 
@@ -435,7 +454,7 @@ mod test {
                 &[0..7, 7..14, 14..21, 21..28, 28..35,],
                 Some(&mut tags),
             ),
-            Ok(10.0),
+            Ok(Some(10.0)),
         );
     }
 
@@ -461,7 +480,7 @@ mod test {
                 &[0..6, 6..12, 12..18, 18..24, 24..30, 30..36,],
                 Some(&mut tags),
             ),
-            Ok(12.0),
+            Ok(Some(12.0)),
         );
     }
 
@@ -496,7 +515,7 @@ mod test {
                 &[0..6, 6..12, 12..18, 18..24,],
                 Some(&mut tags),
             ),
-            Ok(-2460.0),
+            Ok(Some(-2460.0)),
         );
 
         assert!((data[6 * (bases.base(0).unwrap() + 1) + 5] - 12.0).abs() < EPS);
@@ -546,7 +565,7 @@ mod test {
     #[test]
     fn test_simplex_7() {
         let mut bases = [None; 4];
-        
+
         #[rustfmt::skip]
         let mut data = [
             1.0, 1.0, 1.0, 1.0, 0.0,
@@ -567,7 +586,7 @@ mod test {
                 &[0..5, 5..10, 10..15, 15..20, 20..25, 25..30, 30..35,],
                 Some(&mut tags),
             ),
-            Ok(11.0),
+            Ok(Some(11.0)),
         );
     }
 
@@ -588,6 +607,123 @@ mod test {
             data.iter()
                 .zip(&[1.0, 0.0, 1.0, 0.0, 1.0, 1.0])
                 .all(|(a, b)| (a - b).abs() < EPS)
+        );
+    }
+
+    #[test]
+    fn test_simplex_i_p0() {
+        let mut bases = [None; 4];
+
+        #[rustfmt::skip]
+        let mut data = [
+            -5.0, -17.0 / 4.0, 0.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 5.0,
+            10.0, 6.0, 0.0, 1.0, 45.0,
+        ];
+
+        assert_eq!(
+            simplex::<10, ()>(&mut bases, &mut data, &[0..5, 5..10, 10..15], None,),
+            Ok(Some(-24.0625)),
+        );
+
+        assert_eq_float!(data[5 * (bases.base(0).unwrap() + 1) + 4], 3.75);
+        assert_eq_float!(data[5 * (bases.base(1).unwrap() + 1) + 4], 1.25);
+    }
+
+    #[test]
+    fn test_simplex_i_p1() {
+        let mut bases = [None; 5];
+
+        #[rustfmt::skip]
+        let mut data = [
+            -5.0, -17.0 / 4.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 0.0, 5.0,
+            10.0, 6.0, 0.0, 1.0, 0.0, 45.0,
+            1.0, 0.0, 0.0, 0.0, 1.0, 3.0,
+        ];
+
+        assert_eq!(
+            simplex::<10, ()>(&mut bases, &mut data, &[0..6, 6..12, 12..18, 18..24], None,),
+            Ok(Some(-23.5)),
+        );
+
+        assert_eq_float!(data[6 * (bases.base(0).unwrap() + 1) + 5], 3.0);
+        assert_eq_float!(data[6 * (bases.base(1).unwrap() + 1) + 5], 2.0);
+    }
+
+    #[test]
+    #[allow(clippy::unreadable_literal)]
+    fn test_simplex_i_p2() {
+        let mut bases = [None; 5];
+
+        #[rustfmt::skip]
+        let mut data = [
+            -5.0, -17.0 / 4.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 0.0, 5.0,
+            10.0, 6.0, 0.0, 1.0, 0.0, 45.0,
+            1.0, 0.0, 0.0, 0.0, -1.0, 4.0,
+        ];
+
+        assert_eq!(
+            simplex::<10, ()>(&mut bases, &mut data, &[0..6, 6..12, 12..18, 18..24], None,),
+            Ok(Some(-23.541666666666668)),
+        );
+
+        assert_eq_float!(data[6 * (bases.base(0).unwrap() + 1) + 5], 4.0);
+        assert_eq_float!(
+            data[6 * (bases.base(1).unwrap() + 1) + 5],
+            0.8333333333333334
+        );
+    }
+
+    #[test]
+    fn test_simplex_i_p3() {
+        let mut bases = [None; 6];
+
+        #[rustfmt::skip]
+        let mut data = [
+            -5.0, -17.0 / 4.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 5.0,
+            10.0, 6.0, 0.0, 1.0, 0.0, 0.0, 45.0,
+            1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 4.0,
+            0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        ];
+
+        assert_eq!(
+            simplex::<10, ()>(
+                &mut bases,
+                &mut data,
+                &[0..7, 7..14, 14..21, 21..28, 28..35],
+                None,
+            ),
+            Ok(Some(-22.5)),
+        );
+
+        assert_eq_float!(data[7 * (bases.base(0).unwrap() + 1) + 6], 4.5);
+        assert_eq_float!(data[7 * (bases.base(1).unwrap() + 1) + 6], 0.0);
+    }
+
+    #[test]
+    fn test_simplex_i_p4() {
+        let mut bases = [None; 6];
+
+        #[rustfmt::skip]
+        let mut data = [
+            -5.0, -17.0 / 4.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 5.0,
+            10.0, 6.0, 0.0, 1.0, 0.0, 0.0, 45.0,
+            1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 4.0,
+            0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+        ];
+
+        assert_eq!(
+            simplex::<10, ()>(
+                &mut bases,
+                &mut data,
+                &[0..7, 7..14, 14..21, 21..28, 28..35],
+                None,
+            ),
+            Ok(None),
         );
     }
 }
