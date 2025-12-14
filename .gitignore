@@ -6,3 +6,4 @@
 **/*.rs.bk
 **/input
 **/dist
+**/*.log

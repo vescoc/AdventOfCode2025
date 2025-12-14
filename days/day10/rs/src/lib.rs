@@ -1,19 +1,10 @@
-use std::collections::HashMap;
+mod set;
+mod simplex;
 
-trait Set {
-    fn contains(&self, element: usize) -> bool;
-    fn insert(&mut self, element: usize);
-}
+use set::Set;
+pub use simplex::*;
 
-impl Set for [u128; 9] {
-    fn contains(&self, element: usize) -> bool {
-        self[element / 128] & 1 << (element % 128) != 0
-    }
-
-    fn insert(&mut self, element: usize) {
-        self[element / 128] |= 1 << (element % 128);
-    }
-}
+const LOG: bool = false;
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -26,44 +17,14 @@ fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
             if new_lights == lights {
                 return count + 1;
             }
-            if !visited.contains(new_lights as usize) {
-                visited.insert(new_lights as usize);
+            if !visited.is_set(new_lights as usize) {
+                visited.set(new_lights as usize);
                 queue.push_back((new_lights, count + 1)).unwrap();
             }
         }
     }
 
     unreachable!()
-}
-
-fn dp_levels(memoize: &mut HashMap<Vec<u16>, u64>, levels: Vec<u16>, buttons: &[u16]) -> u64 {
-    if let Some(value) = memoize.get(&levels) {
-        return *value;
-    }
-
-    let result = if levels.iter().all(|level| *level == 0) {
-        0
-    } else {
-        let mut min = u64::MAX;
-        'outher: for button in buttons {
-            let mut levels = levels.clone();
-            for (i, level) in levels.iter_mut().enumerate() {
-                if button & (1 << i) != 0 {
-                    if *level == 0 {
-                        continue 'outher;
-                    }
-                    *level -= 1;
-                }
-            }
-
-            min = min.min(dp_levels(memoize, levels, buttons));
-        }
-        min.saturating_add(1)
-    };
-
-    memoize.insert(levels, result);
-
-    result
 }
 
 /// # Panics
@@ -99,9 +60,11 @@ pub fn part_1(data: &str) -> u64 {
 
 /// # Panics
 #[must_use]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::unused_enumerate_index, clippy::used_underscore_binding)]
 pub fn part_2(data: &str) -> u64 {
     data.lines()
-        .map(|line| {
+        .enumerate()
+        .map(|(_i, line)| {
             let mut buttons = vec![];
             let mut levels = None;
             for part in line.split_whitespace() {
@@ -128,10 +91,36 @@ pub fn part_2(data: &str) -> u64 {
                 }
             }
 
-            // TODO: not working!
-            let mut memoize = HashMap::with_capacity(1024);
-            let r = dp_levels(&mut memoize, levels.unwrap(), &buttons);
-            r
+            assert!(buttons.len() < 16);
+
+            let levels = levels.unwrap();
+
+            let mut eqc = vec![1.0; buttons.len() + 1];
+            eqc[buttons.len()] = 0.0;
+
+            let mut eqs = levels
+                .iter()
+                .enumerate()
+                .map(|(i, level)| {
+                    buttons
+                        .iter()
+                        .map(|button| f64::from(button.is_set(i)))
+                        .chain(core::iter::once(f64::from(*level)))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+
+            let mut eqs = core::iter::once(eqc.as_mut_slice())
+                .chain(eqs.iter_mut().map(Vec::as_mut_slice))
+                .collect::<Vec<_>>();
+
+            let mut bases = 0u16;
+            let mut tags = (0..levels.len()).collect::<Vec<_>>();
+            let r = simplex_eqs(&mut bases, &mut eqs, &mut tags).ceil();
+
+            println!("{_i}: {r:.1}");
+
+            r as u64
         })
         .sum()
 }
