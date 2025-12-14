@@ -2,6 +2,7 @@ use core::{mem, ops};
 
 pub trait Set {
     fn set(&mut self, element: usize);
+    #[allow(dead_code)]
     fn reset(&mut self, element: usize);
     #[allow(dead_code)]
     fn size(&self) -> usize;

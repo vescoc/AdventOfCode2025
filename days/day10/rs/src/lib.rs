@@ -5,6 +5,7 @@ use set::Set;
 pub use simplex::*;
 
 const LOG: bool = false;
+const RESULT_LOG: bool = false;
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -114,11 +115,12 @@ pub fn part_2(data: &str) -> u64 {
                 .chain(eqs.iter_mut().map(Vec::as_mut_slice))
                 .collect::<Vec<_>>();
 
-            let mut bases = 0u16;
-            let mut tags = (0..levels.len()).collect::<Vec<_>>();
-            let r = simplex_eqs(&mut bases, &mut eqs, &mut tags).ceil();
+            let mut bases = [None; 16];
+            let r = simplex_eqs(&mut bases, &mut eqs, None::<&mut [()]>).ceil();
 
-            println!("{_i}: {r:.1}");
+            if RESULT_LOG {
+                println!("{_i}: {r:.1}");
+            }
 
             r as u64
         })

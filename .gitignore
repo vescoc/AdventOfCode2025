@@ -7,3 +7,4 @@
 **/input
 **/dist
 **/*.log
+/days/day10/p2.py
