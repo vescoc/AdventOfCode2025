@@ -1,8 +1,6 @@
 use core::mem;
 use core::ops;
 
-use crate::LOG;
-
 const EPS: f64 = 1e-6;
 
 pub trait BaseMap {
@@ -54,47 +52,19 @@ pub fn simplex_eqs<T>(
     eqs: &mut [&mut [f64]],
     tags: Option<&mut [T]>,
 ) -> Option<f64> {
-    if LOG {
-        println!("start");
-        for eq in eqs.iter() {
-            println!("{eq:?}");
-        }
-    }
-
     bases.reset();
 
     if !reduce(bases, &mut eqs[1..], tags) {
         return None;
     }
 
-    if LOG {
-        println!("reduce {bases:?}");
-        for eq in eqs.iter() {
-            println!("{eq:?}");
-        }
-    }
-
     if !change_bases(bases, &mut eqs[1..]) {
         return None;
-    }
-
-    if LOG {
-        println!("change bases {bases:?}");
-        for eq in eqs.iter() {
-            println!("{eq:?}");
-        }
     }
 
     {
         let (eqc, eqs) = eqs.split_first_mut().unwrap();
         tableau(bases, eqc, eqs);
-    }
-
-    if LOG {
-        println!("tableau {bases:?}");
-        for eq in eqs.iter() {
-            println!("{eq:?}");
-        }
     }
 
     let len = eqs[0].len();
@@ -105,10 +75,6 @@ pub fn simplex_eqs<T>(
             None
         }
     }) {
-        if LOG {
-            println!("working on {base_in}");
-        }
-
         let (i, _) = find(&eqs[1..], base_in).expect("???");
         let base_out = bases.base_for_equation(i).expect("cannot find base on {i}");
 
@@ -118,20 +84,6 @@ pub fn simplex_eqs<T>(
 
         bases.base_out(base_out);
         bases.base_in(base_in, i);
-
-        if LOG {
-            println!("pivot {bases:?} from {base_out} to {base_in}");
-            for eq in eqs.iter() {
-                println!("{eq:?}");
-            }
-        }
-    }
-
-    if LOG {
-        println!("done {bases:?}");
-        for eq in eqs.iter() {
-            println!("{eq:?}");
-        }
     }
 
     Some(-eqs[0][len - 1])
@@ -241,10 +193,6 @@ fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) -> bool 
 
         bases.base_out(old_base);
         bases.base_in(new_base, i);
-
-        if LOG {
-            println!("change base from {old_base} to {new_base}");
-        }
     }
 
     equations

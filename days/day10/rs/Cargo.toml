@@ -4,9 +4,10 @@ version.workspace = true
 edition.workspace = true
 
 [features]
-default = ["input"]
+default = ["input", "rayon"]
 
 "input" = []
+"rayon" = ["dep:rayon"]
 
 [package.metadata.aoc]
 year = 2025
@@ -27,3 +28,4 @@ workspace = true
 
 [dependencies]
 heapless.workspace = true
+rayon = { workspace = true, optional = true }
