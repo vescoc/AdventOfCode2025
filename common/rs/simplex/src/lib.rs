@@ -1,7 +1,55 @@
-use core::mem;
-use core::ops;
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(core_float_math))]
 
-const EPS: f64 = 1e-6;
+use core::{mem, ops};
+
+pub trait Float {
+    const EPS: Self;
+
+    fn f_round(self) -> Self;
+    fn f_ceil(self) -> Self;
+    fn f_floor(self) -> Self;
+}
+
+#[cfg(feature = "std")]
+impl Float for f64 {
+    const EPS: Self = 1e-10;
+
+    #[inline]
+    fn f_round(self) -> Self {
+        f64::round(self)
+    }
+
+    #[inline]
+    fn f_ceil(self) -> Self {
+        f64::ceil(self)
+    }
+
+    #[inline]
+    fn f_floor(self) -> Self {
+        f64::floor(self)
+    }
+}
+
+#[cfg(not(feature = "std"))]
+impl Float for f64 {
+    const EPS: Self = 1e-10;
+
+    #[inline]
+    fn f_round(self) -> Self {
+        core::f64::math::round(self)
+    }
+
+    #[inline]
+    fn f_ceil(self) -> Self {
+        core::f64::math::ceil(self)
+    }
+
+    #[inline]
+    fn f_floor(self) -> Self {
+        core::f64::math::floor(self)
+    }
+}
 
 pub trait BaseMap {
     fn base(&self, x: usize) -> Option<usize>;
@@ -47,8 +95,119 @@ pub enum Error {
 }
 
 /// # Panics
+#[must_use]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize>(
+    zi: &[f64],
+    aij: &[f64],
+    bj: &[f64],
+) -> u64 {
+    let zi_len = zi.len();
+    let aij_len = aij.len();
+    let bj_len = bj.len();
+
+    assert!(
+        aij_len == zi_len * bj_len && zi_len > 0 && bj_len > 0,
+        "Invalid data: aij_len ({aij_len}) == zi_len ({zi_len}) * bj_len ({bj_len}) && zi_len ({zi_len}) > 0 && bj_len ({bj_len}) > 0"
+    );
+
+    let mut result = f64::MAX;
+
+    let mut stack = heapless::Vec::<_, BASES>::new();
+    stack.push(heapless::Vec::<_, BASES>::new()).unwrap();
+    while let Some(partitions) = stack.pop() {
+        // allocate all the data, initialized to 0.0
+        let mut data = [0.0; SCRATCH_SIZE];
+
+        let cols = zi_len + 1 + partitions.len();
+        let rows = bj_len + 1 + partitions.len();
+        let data_len = cols * rows;
+
+        assert!(data_len < data.len());
+
+        // init the max xi zj part
+        data[..zi_len].copy_from_slice(zi);
+
+        // init the aij part
+        for (data, (ai, b)) in data[..data_len]
+            .chunks_exact_mut(cols)
+            .skip(1)
+            .zip(aij.chunks_exact(zi_len).zip(bj))
+        {
+            data[..zi_len].copy_from_slice(ai);
+            data[cols - 1] = *b;
+        }
+
+        // init the partitions part
+        for (data, (i, (x, sign, value))) in data[..data_len]
+            .chunks_exact_mut(cols)
+            .skip(bj_len + 1)
+            .zip(partitions.iter().enumerate())
+        {
+            data[*x] = 1.0;
+            data[zi_len + i] = *sign;
+            data[cols - 1] = *value;
+        }
+
+        let mut eqs = heapless::Vec::<_, BASES>::new();
+        for eq in data[..data_len].chunks_exact_mut(cols) {
+            eqs.push(eq).unwrap();
+        }
+
+        let mut bases = [None; BASES];
+        let Some(r) = simplex_eqs(&mut bases, &mut eqs, None::<&mut [()]>) else {
+            continue;
+        };
+        if r >= result {
+            continue;
+        }
+
+        let check_i = bases.iter().enumerate().find_map(|(x, n)| {
+            n.and_then(|n| {
+                let v = eqs[n + 1].last().unwrap();
+                if (v.f_round() - v).abs() > 1e-6 {
+                    Some((x, v))
+                } else {
+                    None
+                }
+            })
+        });
+
+        if let Some((x, v)) = check_i {
+            {
+                let mut partitions = partitions.clone();
+                if let Some((_, s, vv)) = partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
+                    *s = 1.0;
+                    *vv = v.f_floor();
+                } else {
+                    partitions.push((x, 1.0, v.f_floor())).unwrap();
+                }
+
+                stack.push(partitions).unwrap();
+            }
+
+            {
+                let mut partitions = partitions.clone();
+                if let Some((_, s, vv)) = partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
+                    *s = -1.0;
+                    *vv = v.f_ceil();
+                } else {
+                    partitions.push((x, -1.0, v.f_ceil())).unwrap();
+                }
+
+                stack.push(partitions).unwrap();
+            }
+        } else {
+            result = result.min(r.f_floor());
+        }
+    }
+
+    result as u64
+}
+
+/// # Panics
 pub fn simplex_eqs<T>(
-    bases: &mut (impl BaseMap + core::fmt::Debug),
+    bases: &mut impl BaseMap,
     eqs: &mut [&mut [f64]],
     tags: Option<&mut [T]>,
 ) -> Option<f64> {
@@ -69,7 +228,7 @@ pub fn simplex_eqs<T>(
 
     let len = eqs[0].len();
     while let Some(base_in) = eqs[0].iter().take(len - 1).enumerate().find_map(|(j, v)| {
-        if *v < -EPS && !bases.is_base(j) {
+        if *v < -f64::EPS && !bases.is_base(j) {
             Some(j)
         } else {
             None
@@ -91,7 +250,7 @@ pub fn simplex_eqs<T>(
 
 /// # Errors
 pub fn simplex<const SIZE: usize, T>(
-    bases: &mut (impl BaseMap + core::fmt::Debug),
+    bases: &mut impl BaseMap,
     data: &mut [f64],
     partitions: &[ops::Range<usize>],
     tags: Option<&mut [T]>,
@@ -165,12 +324,12 @@ fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) -> bool 
         .filter_map(|(n, eq)| {
             bases.base_for_equation(n).and_then(|_| {
                 eq.last().and_then(|&b| {
-                    if b < -EPS {
+                    if b < -f64::EPS {
                         eq.iter()
                             .take(eq.len() - 1)
                             .enumerate()
                             .filter_map(|(i, &v)| {
-                                if !bases.is_base(i) && v < -EPS {
+                                if !bases.is_base(i) && v < -f64::EPS {
                                     Some(((n, i), b / v))
                                 } else {
                                     None
@@ -198,7 +357,7 @@ fn change_bases(bases: &mut impl BaseMap, equations: &mut [&mut [f64]]) -> bool 
     equations
         .iter()
         .enumerate()
-        .all(|(n, eq)| bases.base_for_equation(n).is_none() || eq[eq.len() - 1] > -EPS)
+        .all(|(n, eq)| bases.base_for_equation(n).is_none() || eq[eq.len() - 1] > -f64::EPS)
 }
 
 fn pivot(equations: &mut [&mut [f64]], i: usize, j: usize) {
@@ -228,7 +387,7 @@ fn find(equations: &[&mut [f64]], k: usize) -> Option<(usize, f64)> {
         .enumerate()
         .filter_map(|(i, eq)| {
             let aik = eq[k];
-            if aik > EPS {
+            if aik > f64::EPS {
                 Some((i, eq[l - 1] / aik))
             } else {
                 None
@@ -305,7 +464,7 @@ fn reduce<T>(
 
     equations
         .iter()
-        .all(|eq| eq[k - 1].abs() < EPS || eq.iter().take(k - 1).any(|v| v.abs() >= EPS))
+        .all(|eq| eq[k - 1].abs() < f64::EPS || eq.iter().take(k - 1).any(|v| v.abs() >= f64::EPS))
 }
 
 #[cfg(test)]
@@ -314,7 +473,7 @@ mod test {
 
     macro_rules! assert_eq_float {
         ($e1:expr, $e2:expr) => {
-            assert!(($e1 - $e2).abs() < EPS, "{} != {}", $e1, $e2);
+            assert!(($e1 - $e2).abs() < f64::EPS, "{} != {}", $e1, $e2);
         };
     }
 
@@ -466,8 +625,8 @@ mod test {
             Ok(Some(-2460.0)),
         );
 
-        assert!((data[6 * (bases.base(0).unwrap() + 1) + 5] - 12.0).abs() < EPS);
-        assert!((data[6 * (bases.base(1).unwrap() + 1) + 5] - 9.0).abs() < EPS);
+        assert!((data[6 * (bases.base(0).unwrap() + 1) + 5] - 12.0).abs() < f64::EPS);
+        assert!((data[6 * (bases.base(1).unwrap() + 1) + 5] - 9.0).abs() < f64::EPS);
     }
 
     #[test]
@@ -554,7 +713,7 @@ mod test {
         assert!(
             data.iter()
                 .zip(&[1.0, 0.0, 1.0, 0.0, 1.0, 1.0])
-                .all(|(a, b)| (a - b).abs() < EPS)
+                .all(|(a, b)| (a - b).abs() < f64::EPS)
         );
     }
 
@@ -672,6 +831,24 @@ mod test {
                 None,
             ),
             Ok(None),
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_integer_simplex() {
+        let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let aij = [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0];
+        let bj = [59.0, 23.0, 42.0, 27.0, 39.0, 21.0, 40.0, 32.0];
+        
+        #[rustfmt::skip]
+        assert_eq!(
+            integer_simplex::<32, { 32 * 32 }>(
+                &zi,
+                &aij,
+                &bj,
+            ),
+            82,
         );
     }
 }

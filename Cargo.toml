@@ -5,6 +5,8 @@ members = [
     "common/rs/ui2",
     "common/rs/bitset",
     "common/rs/mem",
+    "common/rs/numset",
+    "common/rs/simplex",
 
     "common/rs/cdcacm-io",
     "common/rs/embedded-aoc",
@@ -98,6 +100,8 @@ static_cell = "2.1.0"
 aoc = { path = "common/rs/aoc" }
 ui = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
+numset = { path = "common/rs/numset" }
+simplex = { path = "common/rs/simplex" }
 
 cdcacm-io = { path = "common/rs/cdcacm-io" }
 

@@ -1,11 +1,10 @@
+#![no_std]
+
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
-mod set;
-mod simplex;
-
-use set::Set;
-pub use simplex::*;
+use simplex::integer_simplex;
+use numset::Set;
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -28,104 +27,6 @@ fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     unreachable!()
 }
 
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    clippy::similar_names
-)]
-fn simplex_i(eqc: &[f64], eqs: &[Vec<f64>]) -> u64 {
-    let mut result = f64::MAX;
-
-    let mut stack = vec![];
-    stack.push(vec![]);
-    while let Some(partitions) = stack.pop() {
-        let len = eqc.len();
-        let mut current_eqc = eqc
-            .iter()
-            .copied()
-            .chain(core::iter::repeat_n(0.0, partitions.len()))
-            .collect::<Vec<_>>();
-
-        let mut current_eqs = eqs
-            .iter()
-            .map(|v| {
-                v.iter()
-                    .take(len - 1)
-                    .copied()
-                    .chain(core::iter::repeat_n(0.0, partitions.len()))
-                    .chain(v.last().copied())
-                    .collect::<Vec<_>>()
-            })
-            .chain(
-                partitions
-                    .iter()
-                    .enumerate()
-                    .map(|(k, &(x, s, l))| {
-                        (0..len - 1)
-                            .map(|i| if i == x { 1.0 } else { 0.0 })
-                            .chain((0..partitions.len()).map(|i| if k == i { s } else { 0.0 }))
-                            .chain(core::iter::once(l))
-                            .collect::<Vec<_>>()
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .collect::<Vec<_>>();
-
-        let mut current_eqs = core::iter::once(current_eqc.as_mut_slice())
-            .chain(current_eqs.iter_mut().map(Vec::as_mut_slice))
-            .collect::<Vec<_>>();
-
-        let mut bases = [None; 16];
-        let Some(r) = simplex_eqs(&mut bases, &mut current_eqs, None::<&mut [()]>) else {
-            continue;
-        };
-        if r >= result {
-            continue;
-        }
-
-        let check_i = bases.iter().enumerate().find_map(|(x, n)| {
-            n.and_then(|n| {
-                let v = current_eqs[n + 1].last().unwrap();
-                if (v.round() - v).abs() > 1e-6 {
-                    Some((x, v))
-                } else {
-                    None
-                }
-            })
-        });
-
-        if let Some((x, v)) = check_i {
-            {
-                let mut partitions = partitions.clone();
-                if let Some((_, s, vv)) = partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
-                    *s = 1.0;
-                    *vv = v.floor();
-                } else {
-                    partitions.push((x, 1.0, v.floor()));
-                }
-
-                stack.push(partitions);
-            }
-
-            {
-                let mut partitions = partitions.clone();
-                if let Some((_, s, vv)) = partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
-                    *s = -1.0;
-                    *vv = v.ceil();
-                } else {
-                    partitions.push((x, -1.0, v.ceil()));
-                }
-
-                stack.push(partitions);
-            }
-        } else {
-            result = result.min(r.floor());
-        }
-    }
-
-    result as u64
-}
-
 /// # Panics
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
@@ -137,7 +38,9 @@ pub fn part_1(data: &str) -> u64 {
 
     i.map(|line| {
         let mut lights = 0u16;
-        let mut buttons = vec![];
+        
+        let mut buttons_len = 0;
+        let mut buttons = [0u16; 16];
         for part in line.split_whitespace() {
             if part.starts_with('[') {
                 lights = part.as_bytes()[1..part.len() - 1]
@@ -145,19 +48,18 @@ pub fn part_1(data: &str) -> u64 {
                     .rev()
                     .fold(0u16, |acc, light| acc << 1 | u16::from(*light == b'#'));
             } else if part.starts_with('(') {
-                buttons.push(
-                    part.as_bytes()[1..part.len() - 1]
+                buttons[buttons_len] = part.as_bytes()[1..part.len() - 1]
                         .split(|tile| *tile == b',')
                         .map(|num| {
                             num.iter()
                                 .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
                         })
-                        .fold(0u16, |acc, num| acc | 1 << num),
-                );
+                        .fold(0u16, |acc, num| acc | 1 << num);
+                buttons_len += 1;
             }
         }
 
-        bfs_lights(lights, &buttons)
+        bfs_lights(lights, &buttons[..buttons_len])
     })
     .sum()
 }
@@ -172,54 +74,62 @@ pub fn part_2(data: &str) -> u64 {
     let i = data.lines();
 
     i.map(|line| {
-        let mut buttons = vec![];
-        let mut levels = None;
+        let mut buttons_len = 0;
+        let mut buttons = [0u16; 16];
+
+        let mut bj_len = 0;
+        let mut bj = [0.0; 16];
+        
         for part in line.split_whitespace() {
             if part.starts_with('{') {
-                levels.replace(
-                    part.as_bytes()[1..part.len() - 1]
-                        .split(|tile| *tile == b',')
-                        .map(|num| {
-                            num.iter()
-                                .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
-                        })
-                        .collect::<Vec<_>>(),
-                );
+                bj_len = bj
+                    .iter_mut()
+                    .zip(part.as_bytes()[1..part.len() - 1]
+                         .split(|tile| *tile == b',')
+                         .map(|num| {
+                             num.iter()
+                                 .fold(0.0, |acc, digit| acc * 10.0 + f64::from(digit - b'0'))
+                         }))
+                    .map(|(b, v)| { *b = v; } )
+                    .count();
             } else if part.starts_with('(') {
-                buttons.push(
-                    part.as_bytes()[1..part.len() - 1]
+                buttons[buttons_len] = part.as_bytes()[1..part.len() - 1]
                         .split(|tile| *tile == b',')
                         .map(|num| {
                             num.iter()
                                 .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
                         })
-                        .fold(0u16, |acc, num| acc | 1 << num),
-                );
+                        .fold(0u16, |acc, num| acc | 1 << num);
+                buttons_len += 1;
             }
         }
 
-        assert!(buttons.len() < 16);
+        let mut zi = [0.0; 16];
+        let zi_len = zi
+            .iter_mut()
+            .zip(0..buttons_len)
+            .map(|(z, _)| { *z = 1.0; })
+            .count();
 
-        let levels = levels.unwrap();
+        let mut aij = [0.0; 16 * 16];
+        let aij_len = aij
+            .iter_mut()
+            .zip(bj
+                 .iter()
+                 .take(bj_len)
+                 .enumerate()
+                 .flat_map(|(i, _)| {
+                     buttons
+                         .iter()
+                         .take(buttons_len)
+                         .map(move |button| f64::from(button.is_set(i)))
+                 }))
+            .map(|(a, v)| {
+                *a = v;
+            })   
+            .count();
 
-        let eqc = (0..buttons.len())
-            .map(|_| 1.0)
-            .chain(core::iter::once(0.0))
-            .collect::<Vec<_>>();
-
-        let eqs = levels
-            .iter()
-            .enumerate()
-            .map(|(i, level)| {
-                buttons
-                    .iter()
-                    .map(|button| f64::from(button.is_set(i)))
-                    .chain(core::iter::once(f64::from(*level)))
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-
-        simplex_i(&eqc, &eqs)
+        integer_simplex::<32, { 32 * 32 }>(&zi[..zi_len], &aij[..aij_len], &bj[..bj_len])
     })
     .sum()
 }

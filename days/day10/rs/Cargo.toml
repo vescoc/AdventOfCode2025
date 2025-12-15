@@ -4,10 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [features]
-default = ["input", "rayon"]
+default = ["input", "rayon", "stable"]
 
-"input" = []
-"rayon" = ["dep:rayon"]
+input = []
+rayon = ["dep:rayon"]
+stable = ["simplex/std"]
 
 [package.metadata.aoc]
 year = 2025
@@ -29,3 +30,6 @@ workspace = true
 [dependencies]
 heapless.workspace = true
 rayon = { workspace = true, optional = true }
+
+numset.workspace = true
+simplex.workspace = true

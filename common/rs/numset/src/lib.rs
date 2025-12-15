@@ -1,10 +1,10 @@
+#![no_std]
+
 use core::{mem, ops};
 
 pub trait Set {
     fn set(&mut self, element: usize);
-    #[allow(dead_code)]
     fn reset(&mut self, element: usize);
-    #[allow(dead_code)]
     fn size(&self) -> usize;
     fn is_set(&self, element: usize) -> bool;
 }
@@ -23,7 +23,6 @@ where
     const ZERO: Self;
     const ONE: Self;
 
-    #[allow(dead_code)]
     fn count_ones(&self) -> usize;
 }
 
