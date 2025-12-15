@@ -101,7 +101,7 @@ aoc = { path = "common/rs/aoc" }
 ui = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 numset = { path = "common/rs/numset" }
-simplex = { path = "common/rs/simplex" }
+simplex = { path = "common/rs/simplex", default-features = false }
 
 cdcacm-io = { path = "common/rs/cdcacm-io" }
 

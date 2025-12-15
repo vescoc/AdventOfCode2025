@@ -3,8 +3,11 @@ name = "day10ui"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = ["day10/stable"]
+
 [dependencies]
 yew.workspace = true
 ui.workspace = true
 
-day10 = { workspace = true, features = ["stable"] }
+day10.workspace = true
