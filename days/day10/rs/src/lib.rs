@@ -3,8 +3,8 @@
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
-use simplex::integer_simplex;
 use numset::Set;
+use simplex::integer_simplex;
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -38,7 +38,7 @@ pub fn part_1(data: &str) -> u64 {
 
     i.map(|line| {
         let mut lights = 0u16;
-        
+
         let mut buttons_len = 0;
         let mut buttons = [0u16; 16];
         for part in line.split_whitespace() {
@@ -49,12 +49,12 @@ pub fn part_1(data: &str) -> u64 {
                     .fold(0u16, |acc, light| acc << 1 | u16::from(*light == b'#'));
             } else if part.starts_with('(') {
                 buttons[buttons_len] = part.as_bytes()[1..part.len() - 1]
-                        .split(|tile| *tile == b',')
-                        .map(|num| {
-                            num.iter()
-                                .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
-                        })
-                        .fold(0u16, |acc, num| acc | 1 << num);
+                    .split(|tile| *tile == b',')
+                    .map(|num| {
+                        num.iter()
+                            .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
+                    })
+                    .fold(0u16, |acc, num| acc | 1 << num);
                 buttons_len += 1;
             }
         }
@@ -67,6 +67,8 @@ pub fn part_1(data: &str) -> u64 {
 /// # Panics
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
+    type F = f64;
+
     #[cfg(feature = "rayon")]
     let i = data.par_lines();
 
@@ -79,27 +81,31 @@ pub fn part_2(data: &str) -> u64 {
 
         let mut bj_len = 0;
         let mut bj = [0.0; 16];
-        
+
         for part in line.split_whitespace() {
             if part.starts_with('{') {
                 bj_len = bj
                     .iter_mut()
-                    .zip(part.as_bytes()[1..part.len() - 1]
-                         .split(|tile| *tile == b',')
-                         .map(|num| {
-                             num.iter()
-                                 .fold(0.0, |acc, digit| acc * 10.0 + f64::from(digit - b'0'))
-                         }))
-                    .map(|(b, v)| { *b = v; } )
+                    .zip(
+                        part.as_bytes()[1..part.len() - 1]
+                            .split(|tile| *tile == b',')
+                            .map(|num| {
+                                num.iter()
+                                    .fold(0.0, |acc, digit| acc * 10.0 + F::from(digit - b'0'))
+                            }),
+                    )
+                    .map(|(b, v)| {
+                        *b = v;
+                    })
                     .count();
             } else if part.starts_with('(') {
                 buttons[buttons_len] = part.as_bytes()[1..part.len() - 1]
-                        .split(|tile| *tile == b',')
-                        .map(|num| {
-                            num.iter()
-                                .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
-                        })
-                        .fold(0u16, |acc, num| acc | 1 << num);
+                    .split(|tile| *tile == b',')
+                    .map(|num| {
+                        num.iter()
+                            .fold(0, |acc, digit| acc * 10 + u16::from(digit - b'0'))
+                    })
+                    .fold(0u16, |acc, num| acc | 1 << num);
                 buttons_len += 1;
             }
         }
@@ -108,28 +114,30 @@ pub fn part_2(data: &str) -> u64 {
         let zi_len = zi
             .iter_mut()
             .zip(0..buttons_len)
-            .map(|(z, _)| { *z = 1.0; })
+            .map(|(z, _)| {
+                *z = 1.0;
+            })
             .count();
 
         let mut aij = [0.0; 16 * 16];
         let aij_len = aij
             .iter_mut()
-            .zip(bj
-                 .iter()
-                 .take(bj_len)
-                 .enumerate()
-                 .flat_map(|(i, _)| {
-                     buttons
-                         .iter()
-                         .take(buttons_len)
-                         .map(move |button| f64::from(button.is_set(i)))
-                 }))
+            .zip(bj.iter().take(bj_len).enumerate().flat_map(|(i, _)| {
+                buttons
+                    .iter()
+                    .take(buttons_len)
+                    .map(move |button| F::from(button.is_set(i)))
+            }))
             .map(|(a, v)| {
                 *a = v;
-            })   
+            })
             .count();
 
-        integer_simplex::<32, { 32 * 32 }>(&zi[..zi_len], &aij[..aij_len], &bj[..bj_len])
+        // println!("{line}");
+        // println!("let zi = {:?};", &zi[..zi_len]);
+        // println!("let aij = {:?};", &aij[..aij_len]);
+        // println!("let bj = {:?};", &bj[..bj_len]);
+        integer_simplex::<32, { 32 * 32 }, _>(&zi[..zi_len], &aij[..aij_len], &bj[..bj_len])
     })
     .sum()
 }
