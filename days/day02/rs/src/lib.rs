@@ -93,28 +93,78 @@ const fn len(id: u64) -> usize {
 }
 
 fn sum_invalid_ids(low: u64, high: u64) -> u64 {
-    (low..=high)
-        .filter(|id| {
-            let (_div, mask) = DIV1[len(*id) / 2];
-            id / mask == id % mask
-        })
-        .sum()
+    let low_len = len(low);
+    let high_len = len(high);
+    if low_len == high_len {
+        if low_len % 2 == 1 {
+            return 0;
+        }
+
+        let (div, mask) = DIV1[low_len / 2];
+        (1..mask)
+            .filter_map(|n| {
+                let n = n * div;
+                if (low..=high).contains(&n) {
+                    Some(n)
+                } else {
+                    None
+                }
+            })
+            .sum()
+    } else {
+        let (low_div, low_mask) = DIV1[low_len / 2];
+        let (high_div, high_mask) = DIV1[high_len / 2];
+        (1..high_mask)
+            .filter_map(|n| {
+                if n < low_mask {
+                    let n = n * low_div;
+                    if (low..=high).contains(&n) {
+                        return Some(n);
+                    }
+                } else {
+                    let n = n * high_div;
+                    if (low..=high).contains(&n) {
+                        return Some(n);
+                    }
+                }
+
+                None
+            })
+            .sum()
+    }
 }
 
 fn sum_invalid_ids_m(low: u64, high: u64) -> u64 {
-    (low..=high)
-        .filter(|id| {
-            let len = len(*id) - 1;
-            DIV2[len][..DIV2_INDEX[len]]
-                .iter()
-                .any(|(div, mask)| id % div == 0 && id / div == id % mask)
-        })
-        .sum()
+    let low_len = len(low);
+    let high_len = len(high);
+    if low_len == high_len {
+        let divs = &DIV2[low_len - 1][..DIV2_INDEX[low_len - 1]];
+        divs.iter()
+            .enumerate()
+            .flat_map(|(i, (div, mask))| {
+                (1..*mask).map(move |n| n * div).filter(move |n| {
+                    (low..=high).contains(n)
+                        && divs
+                            .iter()
+                            .take(i)
+                            .all(|(div, mask)| !(n % div == 0 && n / div == n % mask))
+                })
+            })
+            .sum()
+    } else {
+        (low..high)
+            .filter(|id| {
+                let len = len(*id) - 1;
+                DIV2[len][..DIV2_INDEX[len]]
+                    .iter()
+                    .any(|(div, mask)| id % div == 0 && id / div == id % mask)
+            })
+            .sum()
+    }
 }
 
 /// # Panics
-#[must_use]
-pub fn part_1(data: &str) -> u64 {
+fn solve(data: &str, f: impl Fn(u64, u64) -> u64 + Sync + Send) -> u64 {
     #[cfg(feature = "rayon")]
     let i = data.trim().par_split(',');
 
@@ -123,44 +173,24 @@ pub fn part_1(data: &str) -> u64 {
 
     i.map(|range| {
         let (low, high) = range.split_once('-').expect("invalid range");
-        let low_length = low.len();
-        let high_length = high.len();
-        if low_length == high_length {
-            if low_length % 2 == 1 {
-                return 0;
-            }
-
-            sum_invalid_ids(
-                low.parse().expect("invalid low"),
-                high.parse().expect("invalid high"),
-            )
-        } else {
-            sum_invalid_ids(
-                low.parse().expect("invalid low"),
-                high.parse().expect("invalid high"),
-            )
-        }
-    })
-    .sum()
-}
-
-/// # Panics
-#[must_use]
-pub fn part_2(data: &str) -> u64 {
-    #[cfg(feature = "rayon")]
-    let i = data.trim().par_split(',');
-
-    #[cfg(not(feature = "rayon"))]
-    let i = data.trim().split(',');
-
-    i.map(|range| {
-        let (low, high) = range.split_once('-').expect("invalid range");
-        sum_invalid_ids_m(
+        f(
             low.parse().expect("invalid low"),
             high.parse().expect("invalid high"),
         )
     })
     .sum()
+}
+
+/// # Panics
+#[must_use]
+pub fn part_1(data: &str) -> u64 {
+    solve(data, sum_invalid_ids)
+}
+
+/// # Panics
+#[must_use]
+pub fn part_2(data: &str) -> u64 {
+    solve(data, sum_invalid_ids_m)
 }
 
 #[cfg(test)]
