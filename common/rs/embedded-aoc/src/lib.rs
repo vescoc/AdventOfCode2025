@@ -120,7 +120,7 @@ impl Day {
             #[cfg(feature = "day09")]
             Day::Day09 => Self::to_string(result, day09::part_2(input)),
             #[cfg(feature = "day10")]
-            Day::Day10 => Self::to_string(result, day10::part_2(input)),
+            Day::Day10 => Self::to_string(result, day10::part_2::<f32>(input)),
             #[cfg(feature = "day11")]
             Day::Day11 => Self::to_string(result, day11::part_2(input)),
             #[cfg(feature = "day12")]

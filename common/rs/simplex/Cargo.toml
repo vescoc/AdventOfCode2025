@@ -9,7 +9,10 @@ default = ["std"]
 std = []
 
 [dependencies]
+slice-partitions.workspace = true
+
 heapless.workspace = true
+thiserror.workspace = true
 
 [lints]
 workspace = true

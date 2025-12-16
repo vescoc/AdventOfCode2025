@@ -11,8 +11,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("part 1", |b| {
         b.iter(|| hint::black_box(day::part_1(hint::black_box(INPUT))));
     });
-    group.bench_function("part 2", |b| {
-        b.iter(|| hint::black_box(day::part_2(hint::black_box(INPUT))));
+    group.bench_function("part 2 (f32)", |b| {
+        b.iter(|| hint::black_box(day::part_2::<f32>(hint::black_box(INPUT))));
+    });
+    group.bench_function("part 2 (f64)", |b| {
+        b.iter(|| hint::black_box(day::part_2::<f64>(hint::black_box(INPUT))));
     });
     group.finish();
 }

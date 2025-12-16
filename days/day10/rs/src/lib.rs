@@ -4,7 +4,7 @@
 use rayon::prelude::*;
 
 use numset::Set;
-use simplex::integer_simplex;
+use simplex::{self, Float, integer_simplex};
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -66,9 +66,11 @@ pub fn part_1(data: &str) -> u64 {
 
 /// # Panics
 #[must_use]
-pub fn part_2(data: &str) -> u64 {
-    type F = f64;
-
+pub fn part_2<F>(data: &str) -> u64
+where
+    F: Float,
+    F: From<u8> + From<bool>,
+{
     #[cfg(feature = "rayon")]
     let i = data.par_lines();
 
@@ -80,7 +82,7 @@ pub fn part_2(data: &str) -> u64 {
         let mut buttons = [0u16; 16];
 
         let mut bj_len = 0;
-        let mut bj = [0.0; 16];
+        let mut bj = [F::ZERO; 16];
 
         for part in line.split_whitespace() {
             if part.starts_with('{') {
@@ -90,8 +92,9 @@ pub fn part_2(data: &str) -> u64 {
                         part.as_bytes()[1..part.len() - 1]
                             .split(|tile| *tile == b',')
                             .map(|num| {
-                                num.iter()
-                                    .fold(0.0, |acc, digit| acc * 10.0 + F::from(digit - b'0'))
+                                num.iter().fold(F::ZERO, |acc, digit| {
+                                    acc * F::TEN + F::from(digit - b'0')
+                                })
                             }),
                     )
                     .map(|(b, v)| {
@@ -110,16 +113,18 @@ pub fn part_2(data: &str) -> u64 {
             }
         }
 
-        let mut zi = [0.0; 16];
+        let mut xi = [None; 16];
+
+        let mut zi = [F::ZERO; 16];
         let zi_len = zi
             .iter_mut()
             .zip(0..buttons_len)
             .map(|(z, _)| {
-                *z = 1.0;
+                *z = F::ONE;
             })
             .count();
 
-        let mut aij = [0.0; 16 * 16];
+        let mut aij = [F::ZERO; 16 * 16];
         let aij_len = aij
             .iter_mut()
             .zip(bj.iter().take(bj_len).enumerate().flat_map(|(i, _)| {
@@ -133,11 +138,17 @@ pub fn part_2(data: &str) -> u64 {
             })
             .count();
 
-        // println!("{line}");
-        // println!("let zi = {:?};", &zi[..zi_len]);
-        // println!("let aij = {:?};", &aij[..aij_len]);
-        // println!("let bj = {:?};", &bj[..bj_len]);
-        integer_simplex::<32, { 32 * 32 }, _>(&zi[..zi_len], &aij[..aij_len], &bj[..bj_len])
+        integer_simplex::<32, { 32 * 32 }, _, _>(
+            simplex::Min,
+            &mut xi[..zi_len],
+            &zi[..zi_len],
+            &aij[..aij_len],
+            &bj[..bj_len],
+        )
+        .expect("BUUUM!")
+        .expect("cannot find a valid solution ")
+        .f_round()
+        .f_as_u64()
     })
     .sum()
 }
@@ -157,16 +168,23 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(INPUT), 33);
+        assert_eq!(part_2::<f64>(INPUT), 33);
     }
 
     #[test]
     fn test_part_2_bad() {
         assert_eq!(
-            part_2(
+            part_2::<f64>(
                 "[##....#.] (5) (2,6) (0,3,4,7) (0,1,2,4,6) (0,2,5,7) (0,1,2,3,6) (2,4,5) (0,6) (2,3,4,7) (1,5,7) {59,23,42,27,39,21,40,32}"
             ),
             82,
         );
+    }
+
+    #[cfg(feature = "input")]
+    #[test]
+    fn test_part_2_f32_vs_f64() {
+        let input = include_str!("../../input");
+        assert_eq!(part_2::<f64>(input), part_2::<f32>(input),);
     }
 }

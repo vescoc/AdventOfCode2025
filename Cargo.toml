@@ -7,7 +7,8 @@ members = [
     "common/rs/mem",
     "common/rs/numset",
     "common/rs/simplex",
-
+    "common/rs/slice-partitions",
+     
     "common/rs/cdcacm-io",
     "common/rs/embedded-aoc",
 
@@ -72,7 +73,7 @@ rayon = "1.10.0"
 reqwest = { version = "0.12.22", features = ["blocking", "json"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.142"
-thiserror = "2.0.12"
+thiserror = { version = "2.0.12", default-features = false }
 toml = "0.9.4"
 criterion = { version = "0.7", features = ["html_reports"] }
 itertools = "0.14.0"
@@ -102,6 +103,7 @@ ui = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 ui2 = { path = "common/rs/ui", features = ["wasm-bindgen"] }
 numset = { path = "common/rs/numset" }
 simplex = { path = "common/rs/simplex", default-features = false }
+slice-partitions = { path = "common/rs/slice-partitions" }
 
 cdcacm-io = { path = "common/rs/cdcacm-io" }
 

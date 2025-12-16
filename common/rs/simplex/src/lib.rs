@@ -1,12 +1,55 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_float_math))]
 
-use core::{mem, ops};
+use core::ops;
+
+use slice_partitions::{Error as PartitionError, partition};
+
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
+pub trait StrategyType: sealed::Sealed {
+    fn prune<F: Float>(solution: F, incumbent_solution: F) -> bool;
+    fn is_better_of<F: Float>(a: F, b: F) -> bool;
+}
+
+#[derive(Debug)]
+pub struct Min;
+
+#[derive(Debug)]
+pub struct Max;
+
+impl sealed::Sealed for Min {}
+impl sealed::Sealed for Max {}
+
+impl StrategyType for Min {
+    #[inline]
+    fn prune<F: Float>(solution: F, incumbent_solution: F) -> bool {
+        solution >= incumbent_solution
+    }
+
+    #[inline]
+    fn is_better_of<F: Float>(a: F, b: F) -> bool {
+        a < b
+    }
+}
+
+impl StrategyType for Max {
+    #[inline]
+    fn prune<F: Float>(solution: F, incumbent_solution: F) -> bool {
+        solution <= incumbent_solution
+    }
+
+    #[inline]
+    fn is_better_of<F: Float>(a: F, b: F) -> bool {
+        a < b
+    }
+}
 
 pub trait Float
 where
     Self: Copy,
-    Self: core::fmt::Debug,
     Self: core::cmp::PartialOrd,
     Self: ops::Sub<Output = Self>
         + ops::Div<Output = Self>
@@ -17,17 +60,30 @@ where
 {
     const EPS: Self;
     const MAX: Self;
+    const MIN: Self;
     const ZERO: Self;
     const ONE: Self;
-
-    fn abs(self) -> Self;
-    fn min(self, other: Self) -> Self;
-
-    fn f_round(self) -> Self;
-    fn f_ceil(self) -> Self;
-    fn f_floor(self) -> Self;
+    const TEN: Self;
 
     fn f_as_u64(self) -> u64;
+
+    #[must_use]
+    fn abs(self) -> Self;
+
+    #[must_use]
+    fn min(self, other: Self) -> Self;
+
+    #[must_use]
+    fn max(self, other: Self) -> Self;
+
+    #[must_use]
+    fn f_round(self) -> Self;
+
+    #[must_use]
+    fn f_ceil(self) -> Self;
+
+    #[must_use]
+    fn f_floor(self) -> Self;
 }
 
 macro_rules! impl_float {
@@ -35,8 +91,16 @@ macro_rules! impl_float {
         impl Float for $t {
             const EPS: Self = $eps;
             const MAX: Self = <$t>::MAX;
+            const MIN: Self = <$t>::MIN;
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
+            const TEN: Self = 10.0;
+
+            #[inline]
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            fn f_as_u64(self) -> u64 {
+                self as u64
+            }
 
             #[inline]
             fn abs(self) -> Self {
@@ -49,8 +113,8 @@ macro_rules! impl_float {
             }
 
             #[inline]
-            fn f_as_u64(self) -> u64 {
-                self as u64
+            fn max(self, other: Self) -> Self {
+                <$t>::min(self, other)
             }
 
             #[inline]
@@ -101,7 +165,7 @@ macro_rules! impl_float {
 }
 
 impl_float!(f64, 1e-6);
-impl_float!(f32, 1e-6);
+impl_float!(f32, 1e-3);
 
 pub trait BaseMap {
     fn base(&self, x: usize) -> Option<usize>;
@@ -140,42 +204,49 @@ impl<const SIZE: usize> BaseMap for [Option<usize>; SIZE] {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
-    Partitions,
-    Len,
+    #[error("Out of memory")]
+    Oom,
+
+    #[error("Invalid data")]
+    InvalidData,
 }
 
+/// # Errors
 /// # Panics
-#[must_use]
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float>(
+#[allow(clippy::too_many_lines)]
+pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, S: StrategyType>(
+    _strategy: S,
+    xi: &mut [Option<u64>],
     zi: &[F],
     aij: &[F],
     bj: &[F],
-) -> u64 {
+) -> Result<Option<F>, Error> {
     let zi_len = zi.len();
     let aij_len = aij.len();
     let bj_len = bj.len();
 
-    assert!(
-        aij_len == zi_len * bj_len && zi_len > 0 && bj_len > 0,
-        "Invalid data: aij_len ({aij_len}) == zi_len ({zi_len}) * bj_len ({bj_len}) && zi_len ({zi_len}) > 0 && bj_len ({bj_len}) > 0"
-    );
+    if !(aij_len == zi_len * bj_len && zi_len > 0 && bj_len > 0 && xi.len() == zi_len) {
+        return Err(Error::InvalidData);
+    }
 
-    let mut result = F::MAX;
+    let mut incumbent_solution = None;
 
     let mut stack = heapless::Vec::<_, BASES>::new();
-    stack.push(heapless::Vec::<_, BASES>::new()).unwrap();
+    stack
+        .push(heapless::Vec::<_, BASES>::new())
+        .map_err(|_| Error::Oom)?;
     while let Some(partitions) = stack.pop() {
         // allocate all the data, initialized to 0.0
-        let mut data = [F::ZERO; SCRATCH_SIZE];
-
         let cols = zi_len + 1 + partitions.len();
         let rows = bj_len + 1 + partitions.len();
         let data_len = cols * rows;
 
-        assert!(data_len < data.len());
+        let mut data = [F::ZERO; SCRATCH_SIZE];
+        if data_len >= data.len() {
+            return Err(Error::Oom);
+        }
 
         // init the max xi zj part
         data[..zi_len].copy_from_slice(zi);
@@ -203,16 +274,14 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float>(
 
         let mut eqs = heapless::Vec::<_, BASES>::new();
         for eq in data[..data_len].chunks_exact_mut(cols) {
-            eqs.push(eq).unwrap();
+            eqs.push(eq).map_err(|_| Error::Oom)?;
         }
 
         let mut bases = [None; BASES];
-        let Some(r) = simplex_eqs(&mut bases, &mut eqs, None::<&mut [()]>) else {
+        let Some(solution) = simplex_eqs(&mut bases, &mut eqs, None::<&mut [()]>) else {
+            // pruned by infeasibility
             continue;
         };
-        if r >= result {
-            continue;
-        }
 
         let check_i = bases.iter().enumerate().find_map(|(x, n)| {
             n.and_then(|n| {
@@ -226,17 +295,27 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float>(
         });
 
         if let Some((x, v)) = check_i {
+            if let Some(incumbent_solution) = incumbent_solution
+                && S::prune(solution, incumbent_solution)
+            {
+                // prune by bound
+                continue;
+            }
+
             {
                 let mut new_partitions = partitions.clone();
                 if let Some((_, s, vv)) = new_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
                     *s = F::ONE;
                     *vv = v.f_floor();
                 } else {
-                    new_partitions.push((x, F::ONE, v.f_floor())).unwrap();
+                    new_partitions
+                        .push((x, F::ONE, v.f_floor()))
+                        .map_err(|_| Error::Oom)?;
                 }
 
-                assert!(new_partitions != partitions && stack.iter().all(|p| p != &new_partitions));
-                stack.push(new_partitions).unwrap();
+                if new_partitions != partitions && stack.iter().all(|p| p != &new_partitions) {
+                    stack.push(new_partitions).map_err(|_| Error::Oom)?;
+                }
             }
 
             {
@@ -245,18 +324,33 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float>(
                     *s = -F::ONE;
                     *vv = v.f_ceil();
                 } else {
-                    new_partitions.push((x, -F::ONE, v.f_ceil())).unwrap();
+                    new_partitions
+                        .push((x, -F::ONE, v.f_ceil()))
+                        .map_err(|_| Error::Oom)?;
                 }
 
-                assert!(new_partitions != partitions && stack.iter().all(|p| p != &new_partitions));
-                stack.push(new_partitions).unwrap();
+                if new_partitions != partitions && stack.iter().all(|p| p != &new_partitions) {
+                    stack.push(new_partitions).map_err(|_| Error::Oom)?;
+                }
+            }
+        } else if let Some(incumbent_solution) = &mut incumbent_solution {
+            if S::is_better_of(solution, *incumbent_solution) {
+                *incumbent_solution = solution;
+
+                for (x, n) in xi.iter_mut().zip(bases.iter()) {
+                    *x = n.map(|n| eqs[n + 1].last().unwrap().f_as_u64());
+                }
             }
         } else {
-            result = result.min(r.f_round());
+            incumbent_solution.replace(solution.f_round());
+
+            for (x, n) in xi.iter_mut().zip(bases.iter()) {
+                *x = n.map(|n| eqs[n + 1].last().unwrap().f_as_u64());
+            }
         }
     }
 
-    result.f_as_u64()
+    Ok(incumbent_solution)
 }
 
 /// # Panics
@@ -308,64 +402,8 @@ pub fn simplex<const SIZE: usize, T, F: Float>(
     data: &mut [F],
     partitions: &[ops::Range<usize>],
     tags: Option<&mut [T]>,
-) -> Result<Option<F>, Error> {
+) -> Result<Option<F>, PartitionError> {
     partition::<SIZE, _, _>(data, partitions, move |eqs| simplex_eqs(bases, eqs, tags))
-}
-
-/// # Errors
-pub fn partition<'a, const SIZE: usize, T, U>(
-    data: &'a mut [T],
-    partitions: &[ops::Range<usize>],
-    f: impl FnOnce(&mut [&'a mut [T]]) -> U,
-) -> Result<U, Error> {
-    let len = partitions.len();
-    if len > SIZE {
-        return Err(Error::Len);
-    }
-
-    if len == 0 {
-        return Ok(f(&mut []));
-    }
-
-    for (i, p1) in partitions.iter().enumerate().take(partitions.len() - 1) {
-        for p2 in partitions.iter().skip(i + 1) {
-            if p1.contains(&p2.start)
-                || p1.contains(&p2.end)
-                || p2.contains(&p1.start)
-                || p2.contains(&p2.end)
-                || (p1.start <= p2.start && p1.end >= p2.end)
-                || (p2.start <= p1.start && p2.end >= p1.end)
-            {
-                return Err(Error::Partitions);
-            }
-        }
-    }
-
-    if partitions
-        .iter()
-        .any(|ops::Range { end, .. }| *end > data.len())
-    {
-        return Err(Error::Partitions);
-    }
-
-    unsafe { Ok(partition_unsafe::<SIZE, T, U>(data, partitions, f)) }
-}
-
-/// # Safety
-/// - partitions must not overlapping
-pub unsafe fn partition_unsafe<'a, const SIZE: usize, T, U>(
-    data: &'a mut [T],
-    partitions: &[ops::Range<usize>],
-    f: impl FnOnce(&mut [&'a mut [T]]) -> U,
-) -> U {
-    let data = data.as_mut_ptr();
-    let mut vector = [const { mem::MaybeUninit::<&'a mut [T]>::uninit() }; SIZE];
-    for (ops::Range { start, end }, e) in partitions.iter().zip(vector.iter_mut()) {
-        e.write(unsafe { core::slice::from_raw_parts_mut(data.add(*start), end - start) });
-    }
-
-    let vector = &mut vector[..partitions.len()];
-    f(unsafe { &mut *(core::ptr::from_mut(vector) as *mut [&mut [T]]) })
 }
 
 fn change_bases<F: Float>(bases: &mut impl BaseMap, equations: &mut [&mut [F]]) -> bool {
@@ -755,23 +793,37 @@ mod test {
     }
 
     #[test]
-    fn test_partitions() {
-        #[rustfmt::skip]
-        let mut data = [1.0, 1.0, 2.0,
-                        1.0, -1.0, 0.0];
-
-        let mut bases = [None; 2];
-        let mut tags = [0, 1];
-        partition::<2, _, _>(&mut data, &[0..3, 3..6], |eqs| {
-            reduce(&mut bases, eqs, Some(&mut tags));
-        })
-        .unwrap();
-
-        assert!(
-            data.iter()
-                .zip(&[1.0, 0.0, 1.0, 0.0, 1.0, 1.0])
-                .all(|(a, b)| (a - b).abs() < f64::EPS)
+    #[rustfmt::skip]
+    fn test_simplex_i_f64() {
+        let mut xi = [None; 4];
+        let zi = [-5.0, -17.0 / 4.0, 0.0, 0.0];
+        let aij = [1.0, 1.0, 1.0, 0.0,
+                   10.0, 6.0, 0.0, 1.0];
+        let bj = [5.0, 45.0];
+        assert_eq!(
+            integer_simplex::<10, 100, f64, _>(Max, &mut xi, &zi, &aij, &bj),
+            Ok(Some(-23.5)),
         );
+
+        assert_eq!(xi[0], Some(3));
+        assert_eq!(xi[1], Some(2));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_simplex_i_f32() {
+        let mut xi = [None; 4];
+        let zi = [-5.0, -17.0 / 4.0, 0.0, 0.0];
+        let aij = [1.0, 1.0, 1.0, 0.0,
+                   10.0, 6.0, 0.0, 1.0];
+        let bj = [5.0, 45.0];
+        assert_eq!(
+            integer_simplex::<10, 100, f32, _>(Max, &mut xi, &zi, &aij, &bj),
+            Ok(Some(-23.5)),
+        );
+
+        assert_eq!(xi[0], Some(3));
+        assert_eq!(xi[1], Some(2));
     }
 
     #[test]
@@ -935,70 +987,115 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn test_integer_simplex() {
+        let mut xi = [None; 10];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0];
         let bj = [59.0, 23.0, 42.0, 27.0, 39.0, 21.0, 40.0, 32.0];
         
         #[rustfmt::skip]
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, _>(
+            integer_simplex::<32, { 32 * 32 }, _, _>(
+                Min,
+                &mut xi,
                 &zi,
                 &aij,
                 &bj,
             ),
-            82,
+            Ok(Some(82.0)),
         );
     }
 
     #[test]
     #[rustfmt::skip]
     fn test_integer_simplex_f32() {
+        let mut xi = [None; 10];
         let zi = [1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [0.0f32, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0];
         let bj = [59.0f32, 23.0, 42.0, 27.0, 39.0, 21.0, 40.0, 32.0];
         
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, _>(
+            integer_simplex::<32, { 32 * 32 }, _, _>(
+                Min,
+                &mut xi,
                 &zi,
                 &aij,
                 &bj,
             ),
-            82,
+            Ok(Some(81.99999)),
         );
     }
 
     #[test]
-    #[rustfmt::skip]
     fn test_integer_simplex_1_f64() {
-        let zi = [1.0f64, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-        let aij = [0.0f64, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0];
-        let bj =  [50.0f64, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
+        let mut xi = [None; 10];
+        let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let aij = [
+            0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        ];
+        let bj = [50.0, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, _>(
-                &zi,
-                &aij,
-                &bj,
-            ),
-            106,
+            integer_simplex::<32, { 32 * 32 }, f64, _>(Min, &mut xi, &zi, &aij, &bj,),
+            Ok(Some(106.0)),
         );
     }
 
     #[test]
-    #[ignore = "failing with f32"]
-    #[rustfmt::skip]
     fn test_integer_simplex_1_f32() {
-        let zi = [1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-        let aij = [0.0f32, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0];
-        let bj =  [50.0f32, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
+        let mut xi = [None; 10];
+        let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let aij = [
+            0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        ];
+        let bj = [50.0, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, _>(
-                &zi,
-                &aij,
-                &bj,
-            ),
-            106,
+            integer_simplex::<32, { 32 * 32 }, f32, _>(Min, &mut xi, &zi, &aij, &bj,),
+            Ok(Some(106.0)),
+        );
+    }
+
+    #[test]
+    fn test_integer_simplex_2_f64() {
+        let mut xi = [None; 9];
+        let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let aij = [
+            0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        ];
+        let bj = [16.0, 22.0, 32.0, 46.0, 9.0, 27.0, 49.0];
+
+        assert_eq!(
+            integer_simplex::<32, { 32 * 32 }, f64, _>(Min, &mut xi, &zi, &aij, &bj,),
+            Ok(Some(54.0)),
+        );
+    }
+
+    #[test]
+    fn test_integer_simplex_2_f32() {
+        let mut xi = [None; 9];
+        let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let aij = [
+            0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        ];
+        let bj = [16.0, 22.0, 32.0, 46.0, 9.0, 27.0, 49.0];
+
+        assert_eq!(
+            integer_simplex::<32, { 32 * 32 }, f32, _>(Min, &mut xi, &zi, &aij, &bj,),
+            Ok(Some(54.0)),
         );
     }
 }

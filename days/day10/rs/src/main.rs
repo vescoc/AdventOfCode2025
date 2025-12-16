@@ -12,7 +12,7 @@ fn main() {
     let now = Instant::now();
 
     println!("part 1: {}", day::part_1(input));
-    println!("part 2: {}", day::part_2(input));
+    println!("part 2: {}", day::part_2::<f32>(input));
 
     let elapsed = now.elapsed();
     println!(
