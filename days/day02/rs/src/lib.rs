@@ -101,7 +101,7 @@ fn sum_invalid_ids(low: u64, high: u64) -> u64 {
         }
 
         let (div, mask) = DIV1[low_len / 2];
-        (1..mask)
+        ((mask / 10).max(1)..mask)
             .filter_map(|n| {
                 let n = n * div;
                 if (low..=high).contains(&n) {
@@ -114,7 +114,7 @@ fn sum_invalid_ids(low: u64, high: u64) -> u64 {
     } else {
         let (low_div, low_mask) = DIV1[low_len / 2];
         let (high_div, high_mask) = DIV1[high_len / 2];
-        (1..high_mask)
+        ((low_mask / 10).max(1)..high_mask)
             .filter_map(|n| {
                 if n < low_mask {
                     let n = n * low_div;
@@ -142,22 +142,36 @@ fn sum_invalid_ids_m(low: u64, high: u64) -> u64 {
         divs.iter()
             .enumerate()
             .flat_map(|(i, (div, mask))| {
-                (1..*mask).map(move |n| n * div).filter(move |n| {
-                    (low..=high).contains(n)
-                        && divs
-                            .iter()
-                            .take(i)
-                            .all(|(div, mask)| !(n % div == 0 && n / div == n % mask))
-                })
+                ((mask / 10).max(1)..*mask)
+                    .map(move |n| n * div)
+                    .filter(move |n| {
+                        (low..=high).contains(n)
+                            && divs
+                                .iter()
+                                .take(i)
+                                .all(|(div, mask)| !(n % div == 0 && n / div == n % mask))
+                    })
             })
             .sum()
     } else {
-        (low..high)
-            .filter(|id| {
-                let len = len(*id) - 1;
-                DIV2[len][..DIV2_INDEX[len]]
-                    .iter()
-                    .any(|(div, mask)| id % div == 0 && id / div == id % mask)
+        let divs = [
+            &DIV2[low_len - 1][..DIV2_INDEX[low_len - 1]],
+            &DIV2[high_len - 1][..DIV2_INDEX[high_len - 1]],
+        ];
+        divs.into_iter()
+            .flatten()
+            .enumerate()
+            .flat_map(|(i, (div, mask))| {
+                ((mask / 10).max(1)..*mask)
+                    .map(move |n| n * div)
+                    .filter(move |n| {
+                        (low..=high).contains(n)
+                            && divs
+                                .into_iter()
+                                .flatten()
+                                .take(i)
+                                .all(|(div, mask)| !(n % div == 0 && n / div == n % mask))
+                    })
             })
             .sum()
     }
