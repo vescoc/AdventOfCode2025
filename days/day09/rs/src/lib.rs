@@ -9,6 +9,7 @@ type VecDeque<T> = heapless::Deque<T, 1024>;
 use rayon::prelude::*;
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     let mut tiles = [(0i64, 0i64); 500];
@@ -128,8 +129,9 @@ const fn mask(min: isize, max: isize) -> [u128; 2] {
 }
 
 /// # Panics
-#[must_use]
 #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+#[cfg_attr(target_os = "none", inline(never))]
+#[must_use]
 pub fn part_2(data: &str) -> u64 {
     let mut tiles = [(0i64, 0i64); 500];
     let len = data

@@ -37,6 +37,11 @@ impl<SOLVE1, SOLVE2> PartialEq for ModelProps<SOLVE1, SOLVE2> {
     }
 }
 
+fn format_duration(elapsed: Option<Duration>) -> String {
+    elapsed
+        .map_or_else(|| "not run".to_string(), |v| format!("{}ms ({}us)", v.as_millis(), v.as_micros()))
+}
+
 impl<SOLVE1, P1T, SOLVE2, P2T> Component for Model<SOLVE1, P1T, SOLVE2, P2T>
 where SOLVE1: Fn(&str) -> P1T + 'static,
       SOLVE2: Fn(&str) -> P2T + 'static,
@@ -86,12 +91,6 @@ where SOLVE1: Fn(&str) -> P1T + 'static,
             let input = input_ref.cast::<HtmlInputElement>();
             input.map(|input| Msg::Run(input.value()))
         });
-
-        fn format_duration(elapsed: Option<Duration>) -> String {
-            elapsed
-                .map(|v| format!("{}ms ({}us)", v.as_millis(), v.as_micros()))
-                .unwrap_or_else(|| "not run".to_string())
-        }
         
         html! {
             <>

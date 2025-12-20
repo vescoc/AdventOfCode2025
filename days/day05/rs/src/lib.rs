@@ -1,6 +1,7 @@
 #![no_std]
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> usize {
     data.split_once("\n\n")
@@ -39,6 +40,7 @@ pub fn part_1(data: &str) -> usize {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
     data.split_once("\n\n")

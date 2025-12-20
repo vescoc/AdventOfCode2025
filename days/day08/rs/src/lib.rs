@@ -129,8 +129,9 @@ fn distance(p1: &Point, p2: &Point) -> Option<i32> {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
-#[allow(clippy::large_stack_arrays, clippy::cast_possible_truncation)]
+#[allow(clippy::cast_possible_truncation)]
 pub fn part_1<const SIZE: usize>(data: &str) -> u32 {
     let mut junctions = [(0, 0, 0); 1000];
     let junctions_len = data
@@ -180,8 +181,9 @@ pub fn part_1<const SIZE: usize>(data: &str) -> u32 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
-#[allow(clippy::large_stack_arrays, clippy::cast_possible_truncation)]
+#[allow(clippy::cast_possible_truncation)]
 pub fn part_2(data: &str) -> i64 {
     let mut junctions = [(0, 0, 0); 1000];
     let junctions_len = data

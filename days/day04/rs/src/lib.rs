@@ -15,6 +15,7 @@ const NEIGHBORS: [(isize, isize); 8] = [
 ];
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> usize {
     let data = &data.trim().as_bytes();
@@ -55,8 +56,8 @@ pub fn part_1(data: &str) -> usize {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
-#[allow(clippy::large_stack_arrays)]
 pub fn part_2(data: &str) -> usize {
     let data = data.trim().as_bytes();
     let columns = data

@@ -12,6 +12,7 @@ members = [
     "common/rs/cdcacm-io",
     "common/rs/embedded-aoc",
 
+    "embedded/rp-pico",
     "embedded/rp-pico2",
 
     "days/day01/rs",

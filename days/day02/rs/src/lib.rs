@@ -196,12 +196,14 @@ fn solve(data: &str, f: impl Fn(u64, u64) -> u64 + Sync + Send) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     solve(data, sum_invalid_ids)
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
     solve(data, sum_invalid_ids_m)

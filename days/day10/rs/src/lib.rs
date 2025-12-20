@@ -28,6 +28,7 @@ fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     #[cfg(feature = "rayon")]
@@ -65,6 +66,7 @@ pub fn part_1(data: &str) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2<F>(data: &str) -> u64
 where

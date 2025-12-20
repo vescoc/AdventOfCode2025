@@ -1,6 +1,7 @@
 #![no_std]
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     let table = data.as_bytes();
@@ -52,6 +53,7 @@ pub fn part_1(data: &str) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
     let table = data.as_bytes();

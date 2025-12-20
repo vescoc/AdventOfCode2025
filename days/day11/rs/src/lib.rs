@@ -81,6 +81,7 @@ fn solve<'a>(data: &'a str, f: impl FnOnce(&Devices<'a>) -> u64) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     solve(data, |devices| {
@@ -89,6 +90,7 @@ pub fn part_1(data: &str) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
     solve(data, |devices| {

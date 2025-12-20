@@ -29,12 +29,24 @@ cargo bench -p dayXY
 cd days/dayXY/rsui && trunk build --release --filehash false --public-url /AdventOfCode2025/dayXY
 ```
 
-## Build rp-pico2
+## rp-pico
+### Build for rp-pico
+```bash
+cargo +nightly build -r --target thumbv6m-none-eabi -p rp-pico -Z build-std=core
+```
+
+### Run on rp-pico
+```bash
+cargo +nightly run -r --target thumbv6m-none-eabi -p rp-pico2 -Z build-std=core
+```
+
+## rp-pico2
+### Build for rp-pico2
 ```bash
 cargo +nightly build -r --target thumbv8m.main-none-eabihf -p rp-pico2 -Z build-std=core
 ```
 
-## Run on rp-pico2
+### Run on rp-pico2
 ```bash
 cargo +nightly run -r --target thumbv8m.main-none-eabihf -p rp-pico2 -Z build-std=core
 ```

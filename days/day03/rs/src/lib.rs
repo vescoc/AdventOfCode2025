@@ -55,12 +55,14 @@ fn solve<const SIZE: usize>(data: &str) -> u64 {
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_1(data: &str) -> u64 {
     solve::<2>(data)
 }
 
 /// # Panics
+#[cfg_attr(target_os = "none", inline(never))]
 #[must_use]
 pub fn part_2(data: &str) -> u64 {
     solve::<12>(data)

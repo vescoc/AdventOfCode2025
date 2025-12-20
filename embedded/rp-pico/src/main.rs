@@ -9,10 +9,6 @@ unsafe extern "C" {
     static _stack_start: u32;
 }
 
-#[unsafe(link_section = ".start_block")]
-#[used]
-pub static IMAGE_DEF: embassy_rp::block::ImageDef = embassy_rp::block::ImageDef::secure_exe();
-
 #[panic_handler]
 fn core_panic(info: &core::panic::PanicInfo) -> ! {
     defmt::error!("PANIC: {}", info);
@@ -38,7 +34,7 @@ embassy_rp::bind_interrupts!(struct Irqs {
 
 #[embassy_executor::main]
 async fn main(spawner: embassy_executor::Spawner) {
-    defmt::info!("RP-PICO2 EMBASSY USB AoC 2025");
+    defmt::info!("RP-PICO EMBASSY USB AoC 2025");
 
     let stack_low = &raw const _stack_end as u32;
     let stack_high = &raw const _stack_start as u32;
@@ -111,8 +107,8 @@ async fn usb_task(
 #[unsafe(link_section = ".bi_entries")]
 #[used]
 pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
-    embassy_rp::binary_info::rp_program_name!(c"RP-PICO2 EMBASSY USB AoC 2025"),
+    embassy_rp::binary_info::rp_program_name!(c"RP-PICO EMBASSY USB AoC 2025"),
     embassy_rp::binary_info::rp_cargo_version!(),
-    embassy_rp::binary_info::rp_program_description!(c"RP-PICO2 EMBASSY USB AoC 2025"),
+    embassy_rp::binary_info::rp_program_description!(c"RP-PICO EMBASSY USB AoC 2025"),
     embassy_rp::binary_info::rp_program_build_attribute!(),
 ];
