@@ -14,6 +14,9 @@ members = [
 
     "embedded/rp-pico",
     "embedded/rp-pico2",
+    "embedded/stm32h743zi-nucleo",
+    "embedded/stm32f3-discovery",
+    "embedded/stm32f411e-disco",
 
     "days/day01/rs",
     "days/day01/rsui",

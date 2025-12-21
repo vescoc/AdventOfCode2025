@@ -3,6 +3,7 @@ use core::ops;
 use embedded_io::{Read, Write};
 
 use crate::{
+	BUFFER_SIZE,
     Day, Duration, END_INPUT_TAG, Handler, Instant, PartResult, START_INPUT_TAG, Timer, info,
     trace, warn,
 };
@@ -19,7 +20,7 @@ where
 {
     trace!("run");
 
-    let mut buffer = [0; 25 * 1024];
+    let mut buffer = [0; BUFFER_SIZE];
     loop {
         let mut length = 0;
         loop {

@@ -5,9 +5,8 @@ use embedded_io_async::{Read, Write};
 
 type Response = heapless::String<255>;
 
-const BUFFER_SIZE: usize = 25 * 1024;
-
 use crate::{
+	BUFFER_SIZE,
     Day, Duration, END_INPUT_TAG, Handler, Instant, PartResult, START_INPUT_TAG, Timer, info,
     trace, warn,
 };

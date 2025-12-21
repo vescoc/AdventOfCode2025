@@ -35,6 +35,8 @@ const START_INPUT_TAG: &str = "START INPUT DAY: ";
 #[cfg(any(feature = "blocking", feature = "nonblocking"))]
 const END_INPUT_TAG: &str = "END INPUT";
 
+const BUFFER_SIZE: usize = 25 * 1024;
+
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Copy, Clone)]
 pub enum Day {

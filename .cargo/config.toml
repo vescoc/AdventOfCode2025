@@ -4,18 +4,8 @@ rustflags = ["-C", "target-cpu=native"]
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "target-cpu=generic"]
 
-[target.thumbv8m.main-none-eabihf]
-runner = "probe-rs run --chip RP235x"
-
-rustflags = [
-          "-C", "link-arg=--nmagic",
-          "-C", "link-arg=-Tlink.x",
-          "-C", "link-arg=-Tdefmt.x",
-          "-C", "target-cpu=cortex-m33",
-]
-
 [target.thumbv6m-none-eabi]
-runner = "probe-rs run --chip RP2040"
+runner = "probe-rs run"
 
 rustflags = [
           "-C", "link-arg=--nmagic",
@@ -24,5 +14,25 @@ rustflags = [
 		  "-C", "target-cpu=generic"
 ]
 
+[target.thumbv7em-none-eabihf]
+runner = "probe-rs run"
+
+rustflags = [
+          "-C", "link-arg=--nmagic",
+          "-C", "link-arg=-Tlink.x",
+          "-C", "link-arg=-Tdefmt.x",
+		  "-C", "target-cpu=generic"
+]
+
+[target.thumbv8m.main-none-eabihf]
+runner = "probe-rs run"
+
+rustflags = [
+          "-C", "link-arg=--nmagic",
+          "-C", "link-arg=-Tlink.x",
+          "-C", "link-arg=-Tdefmt.x",
+          "-C", "target-cpu=cortex-m33",
+]
+
 [env]
-DEFMT_LOG = "debug"
+DEFMT_LOG = "trace"
