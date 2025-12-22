@@ -3498,7 +3498,6 @@ dependencies = [
  "embassy-usb",
  "embedded-aoc",
  "fugit",
- "portable-atomic",
  "static_cell",
 ]
 

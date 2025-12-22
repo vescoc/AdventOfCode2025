@@ -35,4 +35,4 @@ rustflags = [
 ]
 
 [env]
-DEFMT_LOG = "trace"
+DEFMT_LOG = "debug"

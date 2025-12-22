@@ -1,0 +1,2 @@
+stack-size-threshold = 50000
+array-size-threshold = 16000

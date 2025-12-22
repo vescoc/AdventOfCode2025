@@ -26,30 +26,61 @@ day12 = ["dep:day12"]
 alldays = ["stack200k"]
 
 stack200k = [
-    "stack64k",
+    "stack100k",
 
     "day08",
 ]
 
-stack64k = [
-    "stack16k",
+stack100k = [
+    "stack64k",
 
-    "day04",
+    "day11",
 ]
 
-stack16k = [
-    "day01",
-    "day02",
-    "day03",
+stack64k = [
+    "stack10k",
 
-	"day05",
-    "day06",
-    "day07",
+    "day04",
 
 	"day09",
+]
+
+stack10k = [
+    "stack6k",
+	
     "day10",
-    "day11",
+]
+
+stack6k = [
+    "stack5k",
+	
+    "day07",
+]
+
+stack5k = [
+    "stack3k",
+	
+	"day05",
+]
+
+stack3k = [
+    "stack2k",
+	
+    "day02",
+]
+
+stack2k = [
+    "stack1k",
+	
+    "day06",
+
     "day12",
+]
+
+stack1k = [
+    "day01",
+	
+    "day03",
 ]
 
 [dependencies]
