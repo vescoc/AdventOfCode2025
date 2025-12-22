@@ -16,14 +16,12 @@ embassy-usb = { version = "0.5.0" }
 
 fugit = { version = "0.3", features = ["defmt"] }
 
-portable-atomic = { version = "1.12", features = ["critical-section"] }
-
 defmt.workspace = true
 defmt-rtt = "1"
 
 static_cell.workspace = true
 
-embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["alldays", "defmt", "nonblocking"] }
+embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["stack64k", "defmt", "nonblocking"] }
 cdcacm-io.workspace = true
 
 [lints]

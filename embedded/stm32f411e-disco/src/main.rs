@@ -10,7 +10,7 @@ use embassy_stm32::{
     gpio::{Level, Output, Speed},
     peripherals,
     usb,
-	time::Hertz,
+	time::mhz,
 };
 
 type Instant = fugit::Instant<u64, 1, 1_000_000>;
@@ -95,21 +95,22 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         let mut config = embassy_stm32::Config::default();
 
 		config.rcc.hse = Some(Hse {
-			freq: Hertz(8_000_000),
-			mode: HseMode::Bypass,
+			freq: mhz(8),
+			mode: HseMode::Oscillator,
 		});
 		config.rcc.pll_src = PllSource::HSE;
 		config.rcc.pll = Some(Pll {
 			prediv: PllPreDiv::DIV4,
 			mul: PllMul::MUL168,
-			divp: Some(PllPDiv::DIV2), // 8mhz / 4 * 168 / 2 = 168Mhz.
+			divp: Some(PllPDiv::DIV4), // 8mhz / 4 * 168 / 4 = 84Mhz.
 			divq: Some(PllQDiv::DIV7), // 8mhz / 4 * 168 / 7 = 48Mhz.
 			divr: None,
 		});
+		config.rcc.sys = Sysclk::PLL1_P;
+		
 		config.rcc.ahb_pre = AHBPrescaler::DIV1;
 		config.rcc.apb1_pre = APBPrescaler::DIV4;
 		config.rcc.apb2_pre = APBPrescaler::DIV2;
-		config.rcc.sys = Sysclk::PLL1_P;
 		config.rcc.mux.clk48sel = mux::Clk48sel::PLL1_Q;
 
 		config
@@ -171,8 +172,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     let timer = Now;
 
     let led_run = Output::new(peripherals.PD12, Level::Low, Speed::Low);
-    let led_invalid = Output::new(peripherals.PD14, Level::Low, Speed::Low);
-    let led_unsupported = Output::new(peripherals.PB13, Level::Low, Speed::Low);
+    let led_invalid = Output::new(peripherals.PD13, Level::Low, Speed::Low);
+    let led_unsupported = Output::new(peripherals.PD14, Level::Low, Speed::Low);
 
     let handler = SimpleHandler {
         led_run,
