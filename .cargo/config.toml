@@ -34,5 +34,49 @@ rustflags = [
           "-C", "target-cpu=cortex-m33",
 ]
 
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --monitor"
+
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+    "-C", "link-arg=-nostartfiles",
+	"-C", "target-cpu=esp32",
+]
+
+[target.xtensa-esp32s2-none-elf]
+runner = "espflash flash --monitor"
+
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+    "-C", "link-arg=-nostartfiles",
+	"-C", "target-cpu=esp32s2",
+]
+
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --monitor"
+
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+    "-C", "link-arg=-nostartfiles",
+	"-C", "target-cpu=esp32s3",
+]
+
+[target.riscv32imc-unknown-none-elf]
+runner = "espflash flash --monitor"
+
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+	"-C", "target-cpu=generic",
+]
+
+[target.riscv32imac-unknown-none-elf]
+runner = "espflash flash --monitor"
+
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+	"-C", "target-cpu=generic",
+]
+
 [env]
 DEFMT_LOG = "debug"
+ESP_LOG = "info"

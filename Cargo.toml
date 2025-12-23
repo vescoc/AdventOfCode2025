@@ -18,6 +18,8 @@ members = [
     "embedded/stm32f3-discovery",
     "embedded/stm32f411e-disco",
 
+    "embedded/aoc-esp32",
+
     "days/day01/rs",
     "days/day01/rsui",
 
@@ -65,6 +67,7 @@ version = "0.1.0"
 authors = ["vescoc"]
 
 [workspace.dependencies]
+cfg-if = "1"
 aes = "0.8.4"
 bytecount = "0.6.8"
 cbc = { version = "0.1.2", features = ["std"] }

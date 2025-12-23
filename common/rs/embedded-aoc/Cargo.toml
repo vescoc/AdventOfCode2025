@@ -25,6 +25,8 @@ day12 = ["dep:day12"]
 
 alldays = ["stack200k"]
 
+nofp = []
+
 stack200k = [
     "stack100k",
 

@@ -98,3 +98,91 @@ cargo +nightly build -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z 
 ```bash
 cargo +nightly run -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z build-std=core -- --chip STM32H743ZI
 ```
+
+### esp32
+#### Build for esp32
+```bash
+cargo +esp build -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core
+```
+
+#### Run on esp32
+Serial adapter:
+- TX: esp32 PIN 18 (esp32 RX out)
+- RX: esp32 PIN 19 (esp32 TX out)
+- GND: esp32 GND
+
+```bash
+cargo +esp run -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core
+```
+
+### esp32s2 (mini)
+#### Build for esp32s2 (mini)
+```bash
+cargo +esp build -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core
+```
+
+#### Run on esp32s2 (mini)
+Serial adapter:
+- TX: esp32s2 PIN 18 (esp32s2 RX out)
+- RX: esp32s2 PIN 17 (esp32s2 TX out)
+- GND: esp32s2 GND
+
+Logging serial adapter:
+- TX: esp32s2 PIN 39 (esp32s2 RX out)
+- RX: esp32s2 PIN 40 (esp32s2 TX out)
+- GND: esp32s2 GND
+- Led at PIN 15 on when there is an error
+
+For flashing esp32s2 (mini): hold Boot button, bold Reset button, release Reset button, release Boot button, this make the MCU on boot mode.
+```bash
+cargo +esp run -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core -- --no-stub -b no-reset
+```
+After flashing, push Reset button for resetting.
+
+### esp32s3
+#### Build for esp32s3
+```bash
+cargo +esp build -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core
+```
+
+#### Run on esp32s3
+Serial adapter:
+- TX: esp32s3 PIN 18 (esp32s3 RX out)
+- RX: esp32s3 PIN 17 (esp32s3 TX out)
+- GND: esp32s3 GND
+
+```bash
+cargo +esp run -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core
+```
+
+### esp32c3
+#### Build for esp32c3
+```bash
+cargo +nightly build -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core
+```
+
+#### Run on esp32c3
+Serial adapter:
+- TX: esp32c3 PIN 18 (esp32c3 RX out)
+- RX: esp32c3 PIN 19 (esp32c3 TX out)
+- GND: esp32 GND
+
+```bash
+cargo +nightly run -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core
+```
+
+### esp32c6
+#### Build for esp32c6
+```bash
+cargo +nightly build -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core
+```
+
+#### Run on esp32c6
+Serial adapter:
+- TX: esp32c6 PIN 18 (esp32c6 RX out)
+- RX: esp32c6 PIN 19 (esp32c6 TX out)
+- GND: esp32 GND
+
+```bash
+cargo +nightly run -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core
+```
