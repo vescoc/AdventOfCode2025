@@ -100,10 +100,10 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
 		});
 		config.rcc.pll_src = PllSource::HSE;
 		config.rcc.pll = Some(Pll {
-			prediv: PllPreDiv::DIV4,
-			mul: PllMul::MUL168,
-			divp: Some(PllPDiv::DIV4), // 8mhz / 4 * 168 / 4 = 84Mhz.
-			divq: Some(PllQDiv::DIV7), // 8mhz / 4 * 168 / 7 = 48Mhz.
+			prediv: PllPreDiv::DIV8,
+			mul: PllMul::MUL192,
+			divp: Some(PllPDiv::DIV2), // 8mhz / 8 * 192 / 2 = 96Mhz.
+			divq: Some(PllQDiv::DIV4), // 8mhz / 8 * 192 / 4 = 48Mhz.
 			divr: None,
 		});
 		config.rcc.sys = Sysclk::PLL1_P;
