@@ -31,7 +31,7 @@ cd days/dayXY/rsui && trunk build --release --filehash false --public-url /Adven
 
 ## Embedded
 ### Install probe-rs-tools
-[Install probe-rs][https://probe.rs/]
+[Install probe-rs](https://probe.rs/)
 
 Example:
 ```bash
@@ -41,8 +41,18 @@ cargo binstall probe-rs-tools
 ### Install Rust nightly
 targets:
 - thumbv6m-none-eabi (rp-pico) 
-- thumbv7em-none-eabihf (stm32 f3 discovery, stm32 h743zi nucleo, ...)
+- thumbv7em-none-eabihf (stm32 f3 discovery, stm32 h743zi nucleo, nRF 52840, ...)
 - thumbv6m-none-eabi (rp-pico2)
+- riscv32imc-unknown-none-elf (esp32-c3)
+- riscv32imac-unknown-none-elf (esp32-c6)
+
+### Install Rust esp32 toolkit
+[Install espup](https://github.com/esp-rs/espup)
+
+targets:
+- xtensa-esp32-none-elf
+- xtensa-esp32s2-none-elf
+- xtensa-esp32s3-none-elf
 
 ### rp-pico
 #### Build for rp-pico
