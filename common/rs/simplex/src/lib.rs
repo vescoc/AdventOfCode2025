@@ -114,7 +114,7 @@ macro_rules! impl_float {
 
             #[inline]
             fn max(self, other: Self) -> Self {
-                <$t>::min(self, other)
+                <$t>::max(self, other)
             }
 
             #[inline]
@@ -354,6 +354,7 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, 
 }
 
 /// # Panics
+#[allow(clippy::similar_names)]
 pub fn simplex_eqs<T, F: Float>(
     bases: &mut impl BaseMap,
     eqs: &mut [&mut [F]],
