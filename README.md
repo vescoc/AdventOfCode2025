@@ -99,6 +99,17 @@ cargo +nightly build -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z 
 cargo +nightly run -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z build-std=core -- --chip STM32H743ZI
 ```
 
+### nrf52840-dk
+#### Build for nrf52840-dk
+```bash
+cargo +nightly build -r --target thumbv7em-none-eabihf -p nrf52840-dk -Z build-std=core
+```
+
+#### Run on nrf52840-dk
+```bash
+cargo +nightly run -r --target thumbv7em-none-eabihf -p nrf52840-dk -Z build-std=core -- --chip nRF52840_xxAA
+```
+
 ### esp32
 #### Build for esp32
 ```bash

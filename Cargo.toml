@@ -12,13 +12,13 @@ members = [
     "common/rs/cdcacm-io",
     "common/rs/embedded-aoc",
 
+    "embedded/aoc-esp32",
+    "embedded/nrf52840-dk",
     "embedded/rp-pico",
     "embedded/rp-pico2",
     "embedded/stm32h743zi-nucleo",
     "embedded/stm32f3-discovery",
     "embedded/stm32f411e-disco",
-
-    "embedded/aoc-esp32",
 
     "days/day01/rs",
     "days/day01/rsui",

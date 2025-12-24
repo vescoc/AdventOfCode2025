@@ -1042,6 +1042,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "embassy-nrf"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de748eaafda21aab46925973e593f377ed4482e9f4de63a729c79a7b0e4a327a"
+dependencies = [
+ "bitflags 2.10.0",
+ "cfg-if",
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "document-features",
+ "embassy-embedded-hal",
+ "embassy-hal-internal",
+ "embassy-sync 0.7.2",
+ "embassy-time",
+ "embassy-time-driver",
+ "embassy-time-queue-utils",
+ "embassy-usb-driver",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "embedded-io 0.6.1",
+ "embedded-io-async 0.6.1",
+ "embedded-storage",
+ "embedded-storage-async",
+ "fixed",
+ "nrf-pac",
+ "rand_core 0.6.4",
+ "rand_core 0.9.3",
+]
+
+[[package]]
 name = "embassy-rp"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2887,6 +2919,34 @@ name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
+
+[[package]]
+name = "nrf-pac"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae76c372d1838abeccf1d397688cd4bd90fe3213410c51cb74c6769fdf075067"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+]
+
+[[package]]
+name = "nrf52840-dk"
+version = "0.1.0"
+dependencies = [
+ "cdcacm-io",
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt 1.0.1",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-nrf",
+ "embassy-time",
+ "embassy-usb",
+ "embedded-aoc",
+ "fugit",
+ "static_cell",
+]
 
 [[package]]
 name = "num-traits"
