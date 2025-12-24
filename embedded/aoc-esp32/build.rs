@@ -7,7 +7,7 @@ fn main() {
 
     fs::write(
         out.join("log_filter.rs"),
-        &format!(
+        format!(
             "const FILTER_MAX: log::LevelFilter = log::LevelFilter::{};",
             parse_esp_log()
         ),

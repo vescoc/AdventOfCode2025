@@ -19,6 +19,7 @@ impl SerialLogger {
         Self(critical_section::Mutex::new(RefCell::new(None)))
     }
 
+    /// # Errors
     pub fn init(
         serial: Uart<'static, esp_hal::Blocking>,
         led_error: Output<'static>,

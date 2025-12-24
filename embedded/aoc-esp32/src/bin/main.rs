@@ -3,9 +3,6 @@
 #![no_main]
 #![allow(clippy::used_underscore_binding)]
 
-#[cfg(feature = "esp32s2")]
-mod serial_logger;
-
 use esp_backtrace as _;
 
 use esp_hal::clock::CpuClock;
@@ -47,7 +44,7 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
                 esp_hal::gpio::OutputConfig::default(),
             );
 
-            serial_logger::SerialLogger::init(logger, led_error).ok();
+            aoc_esp32::serial_logger::SerialLogger::init(logger, led_error).ok();
         } else {
             esp_println::logger::init_logger_from_env();
         }
@@ -108,8 +105,8 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
                 .with_tx(peripherals.GPIO19)
                 .into_async();
         } else {
-			compile_error!("Mush be specified a esp32: esp32, esp32s2, esp32s3, esp32c3, esp32c6");
-		}
+            compile_error!("Mush be specified a esp32: esp32, esp32s2, esp32s3, esp32c3, esp32c6");
+        }
     }
 
     let (rx, tx) = uart.split();

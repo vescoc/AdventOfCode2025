@@ -113,7 +113,7 @@ cargo +nightly run -r --target thumbv7em-none-eabihf -p nrf52840-dk -Z build-std
 ### esp32
 #### Build for esp32
 ```bash
-cargo +esp build -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core
+cargo +esp build -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core --lib --bins
 ```
 
 #### Run on esp32
@@ -129,7 +129,7 @@ cargo +esp run -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-
 ### esp32s2 (mini)
 #### Build for esp32s2 (mini)
 ```bash
-cargo +esp build -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core
+cargo +esp build -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core --lib --bins
 ```
 
 #### Run on esp32s2 (mini)
@@ -153,7 +153,7 @@ After flashing, push Reset button for resetting.
 ### esp32s3
 #### Build for esp32s3
 ```bash
-cargo +esp build -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core
+cargo +esp build -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core --lib --bins
 ```
 
 #### Run on esp32s3
@@ -169,7 +169,7 @@ cargo +esp run -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z bu
 ### esp32c3
 #### Build for esp32c3
 ```bash
-cargo +nightly build -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core
+cargo +nightly build -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core --lib --bins
 ```
 
 #### Run on esp32c3
@@ -185,7 +185,7 @@ cargo +nightly run -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32
 ### esp32c6
 #### Build for esp32c6
 ```bash
-cargo +nightly build -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core
+cargo +nightly build -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core --lib --bins
 ```
 
 #### Run on esp32c6
