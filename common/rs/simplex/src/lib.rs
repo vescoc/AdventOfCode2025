@@ -204,6 +204,75 @@ impl<const SIZE: usize> BaseMap for [Option<usize>; SIZE] {
     }
 }
 
+pub trait VisitedStack<F: Float> {
+    fn clear(&mut self);
+    fn pop(&mut self) -> Option<&[(usize, F, F)]>;
+
+    /// # Errors
+    /// - When oom
+    fn push_if_needed<'b>(
+        &mut self,
+        value: &'b [(usize, F, F)],
+    ) -> Result<bool, &'b [(usize, F, F)]>;
+}
+
+pub struct HeaplessVisitedStack<'a, F: Float> {
+    stack: &'a mut heapless::VecView<usize>,
+    headers: &'a mut heapless::VecView<(usize, usize)>,
+    heap: &'a mut heapless::VecView<(usize, F, F)>,
+}
+
+impl<'a, F: Float> HeaplessVisitedStack<'a, F> {
+    pub fn new(
+        stack: &'a mut heapless::VecView<usize>,
+        headers: &'a mut heapless::VecView<(usize, usize)>,
+        heap: &'a mut heapless::VecView<(usize, F, F)>,
+    ) -> Self {
+        Self {
+            stack,
+            headers,
+            heap,
+        }
+    }
+}
+
+impl<F: Float> VisitedStack<F> for HeaplessVisitedStack<'_, F> {
+    fn clear(&mut self) {
+        self.stack.clear();
+        self.headers.clear();
+        self.heap.clear();
+    }
+
+    fn pop(&mut self) -> Option<&[(usize, F, F)]> {
+        self.stack.pop().map(|index| {
+            let (start, len) = self.headers[index];
+            &self.heap[start..start + len]
+        })
+    }
+
+    fn push_if_needed<'a>(
+        &mut self,
+        value: &'a [(usize, F, F)],
+    ) -> Result<bool, &'a [(usize, F, F)]> {
+        if self
+            .headers
+            .iter()
+            .all(|&(start, len)| check_partitions(value, &self.heap[start..start + len]))
+        {
+            let start = self.heap.len();
+            self.heap.extend_from_slice(value).map_err(|_| value)?;
+
+            let index = self.headers.len();
+            self.headers.push((start, value.len())).map_err(|_| value)?;
+            self.stack.push(index).map_err(|_| value)?;
+
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
     #[error("Out of memory")]
@@ -217,6 +286,7 @@ pub enum Error {
 /// # Panics
 #[allow(clippy::too_many_lines)]
 pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, S: StrategyType>(
+    stack: &mut impl VisitedStack<F>,
     _strategy: S,
     xi: &mut [Option<u64>],
     zi: &[F],
@@ -233,10 +303,8 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, 
 
     let mut incumbent_solution = None;
 
-    let mut stack = heapless::Vec::<_, BASES>::new();
-    stack
-        .push(heapless::Vec::<_, BASES>::new())
-        .map_err(|_| Error::Oom)?;
+    stack.clear();
+    stack.push_if_needed(&[]).map_err(|_| Error::Oom)?;
     while let Some(partitions) = stack.pop() {
         // allocate all the data, initialized to 0.0
         let cols = zi_len + 1 + partitions.len();
@@ -302,44 +370,50 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, 
                 continue;
             }
 
-            {
+            let mut floor_partitions =
+                heapless::Vec::<_, BASES>::from_slice(partitions).map_err(|_| Error::Oom)?;
+            let add_floor_partitions = {
                 let mut found = false;
-                let mut new_partitions = partitions.clone();
-                if let Some((_, s, vv)) = new_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
+                if let Some((_, s, vv)) = floor_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
                     *s = F::ONE;
                     *vv = v.f_floor();
                     found = true;
                 } else {
-                    new_partitions
+                    floor_partitions
                         .push((x, F::ONE, v.f_floor()))
                         .map_err(|_| Error::Oom)?;
                 }
 
-                if (!found || check_partitions(&new_partitions, &partitions))
-                    && stack.iter().all(|p| check_partitions(&new_partitions, p))
-                {
-                    stack.push(new_partitions).map_err(|_| Error::Oom)?;
-                }
-            }
+                !found || check_partitions(&floor_partitions, partitions)
+            };
 
-            {
+            let mut ceil_partitions =
+                heapless::Vec::<_, BASES>::from_slice(partitions).map_err(|_| Error::Oom)?;
+            let add_ceil_partitions = {
                 let mut found = false;
-                let mut new_partitions = partitions.clone();
-                if let Some((_, s, vv)) = new_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
+                if let Some((_, s, vv)) = ceil_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
                     *s = -F::ONE;
                     *vv = v.f_ceil();
                     found = true;
                 } else {
-                    new_partitions
+                    ceil_partitions
                         .push((x, -F::ONE, v.f_ceil()))
                         .map_err(|_| Error::Oom)?;
                 }
 
-                if (!found || check_partitions(&new_partitions, &partitions))
-                    && stack.iter().all(|p| check_partitions(p, &new_partitions))
-                {
-                    stack.push(new_partitions).map_err(|_| Error::Oom)?;
-                }
+                !found || check_partitions(&ceil_partitions, partitions)
+            };
+
+            if add_floor_partitions {
+                stack
+                    .push_if_needed(&floor_partitions)
+                    .map_err(|_| Error::Oom)?;
+            }
+
+            if add_ceil_partitions {
+                stack
+                    .push_if_needed(&ceil_partitions)
+                    .map_err(|_| Error::Oom)?;
             }
         } else if let Some(incumbent_solution) = &mut incumbent_solution {
             if S::is_better_of(solution, *incumbent_solution) {
@@ -527,7 +601,7 @@ fn reduce<T, F: Float>(
         let Some(r) = equations
             .iter()
             .enumerate()
-            .position(|(candidate, equation)| candidate >= i && equation[j] != F::ZERO)
+            .position(|(candidate, equation)| candidate >= i && equation[j].abs() > F::EPS)
         else {
             j += 1;
             continue;
@@ -811,13 +885,19 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn test_simplex_i_f64() {
+		let mut stack = heapless::Vec::<_, 10>::new();
+		let mut headers = heapless::Vec::<_, 100>::new();
+		let mut heap = heapless::Vec::<_, 100>::new();
+	
+		let mut stack = HeaplessVisitedStack::new(stack.as_mut_view(), headers.as_mut_view(), heap.as_mut_view());
+		
         let mut xi = [None; 4];
         let zi = [-5.0, -17.0 / 4.0, 0.0, 0.0];
         let aij = [1.0, 1.0, 1.0, 0.0,
                    10.0, 6.0, 0.0, 1.0];
         let bj = [5.0, 45.0];
         assert_eq!(
-            integer_simplex::<10, 100, f64, _>(Max, &mut xi, &zi, &aij, &bj),
+            integer_simplex::<10, 100, f64, _>(&mut stack, Max, &mut xi, &zi, &aij, &bj),
             Ok(Some(-23.5)),
         );
 
@@ -828,13 +908,19 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn test_simplex_i_f32() {
+		let mut stack = heapless::Vec::<_, 10>::new();
+		let mut headers = heapless::Vec::<_, 100>::new();
+		let mut heap = heapless::Vec::<_, 100>::new();
+	
+		let mut stack = HeaplessVisitedStack::new(stack.as_mut_view(), headers.as_mut_view(), heap.as_mut_view());
+		
         let mut xi = [None; 4];
         let zi = [-5.0, -17.0 / 4.0, 0.0, 0.0];
         let aij = [1.0, 1.0, 1.0, 0.0,
                    10.0, 6.0, 0.0, 1.0];
         let bj = [5.0, 45.0];
         assert_eq!(
-            integer_simplex::<10, 100, f32, _>(Max, &mut xi, &zi, &aij, &bj),
+            integer_simplex::<10, 100, f32, _>(&mut stack, Max, &mut xi, &zi, &aij, &bj),
             Ok(Some(-23.5)),
         );
 
@@ -1003,6 +1089,12 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn test_integer_simplex() {
+		let mut stack = heapless::Vec::<_, 32>::new();
+		let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+		let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+	
+		let mut stack = HeaplessVisitedStack::new(stack.as_mut_view(), headers.as_mut_view(), heap.as_mut_view());
+		
         let mut xi = [None; 10];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0];
@@ -1011,6 +1103,7 @@ mod test {
         #[rustfmt::skip]
         assert_eq!(
             integer_simplex::<32, { 32 * 32 }, _, _>(
+				&mut stack,
                 Min,
                 &mut xi,
                 &zi,
@@ -1024,6 +1117,12 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn test_integer_simplex_f32() {
+		let mut stack = heapless::Vec::<_, 32>::new();
+		let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+		let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+	
+		let mut stack = HeaplessVisitedStack::new(stack.as_mut_view(), headers.as_mut_view(), heap.as_mut_view());
+		
         let mut xi = [None; 10];
         let zi = [1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [0.0f32, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0];
@@ -1031,6 +1130,7 @@ mod test {
         
         assert_eq!(
             integer_simplex::<32, { 32 * 32 }, _, _>(
+				&mut stack,
                 Min,
                 &mut xi,
                 &zi,
@@ -1043,6 +1143,16 @@ mod test {
 
     #[test]
     fn test_integer_simplex_1_f64() {
+        let mut stack = heapless::Vec::<_, 32>::new();
+        let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+        let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+
+        let mut stack = HeaplessVisitedStack::new(
+            stack.as_mut_view(),
+            headers.as_mut_view(),
+            heap.as_mut_view(),
+        );
+
         let mut xi = [None; 10];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [
@@ -1055,13 +1165,23 @@ mod test {
         let bj = [50.0, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, f64, _>(Min, &mut xi, &zi, &aij, &bj,),
+            integer_simplex::<32, { 32 * 32 }, f64, _>(&mut stack, Min, &mut xi, &zi, &aij, &bj,),
             Ok(Some(106.0)),
         );
     }
 
     #[test]
     fn test_integer_simplex_1_f32() {
+        let mut stack = heapless::Vec::<_, 32>::new();
+        let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+        let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+
+        let mut stack = HeaplessVisitedStack::new(
+            stack.as_mut_view(),
+            headers.as_mut_view(),
+            heap.as_mut_view(),
+        );
+
         let mut xi = [None; 10];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [
@@ -1074,13 +1194,23 @@ mod test {
         let bj = [50.0, 69.0, 17.0, 60.0, 52.0, 62.0, 66.0, 42.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, f32, _>(Min, &mut xi, &zi, &aij, &bj,),
+            integer_simplex::<32, { 32 * 32 }, f32, _>(&mut stack, Min, &mut xi, &zi, &aij, &bj,),
             Ok(Some(106.0)),
         );
     }
 
     #[test]
     fn test_integer_simplex_2_f64() {
+        let mut stack = heapless::Vec::<_, 32>::new();
+        let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+        let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+
+        let mut stack = HeaplessVisitedStack::new(
+            stack.as_mut_view(),
+            headers.as_mut_view(),
+            heap.as_mut_view(),
+        );
+
         let mut xi = [None; 9];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [
@@ -1092,13 +1222,23 @@ mod test {
         let bj = [16.0, 22.0, 32.0, 46.0, 9.0, 27.0, 49.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, f64, _>(Min, &mut xi, &zi, &aij, &bj,),
+            integer_simplex::<32, { 32 * 32 }, f64, _>(&mut stack, Min, &mut xi, &zi, &aij, &bj,),
             Ok(Some(54.0)),
         );
     }
 
     #[test]
     fn test_integer_simplex_2_f32() {
+        let mut stack = heapless::Vec::<_, 32>::new();
+        let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+        let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+
+        let mut stack = HeaplessVisitedStack::new(
+            stack.as_mut_view(),
+            headers.as_mut_view(),
+            heap.as_mut_view(),
+        );
+
         let mut xi = [None; 9];
         let zi = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let aij = [
@@ -1110,7 +1250,7 @@ mod test {
         let bj = [16.0, 22.0, 32.0, 46.0, 9.0, 27.0, 49.0];
 
         assert_eq!(
-            integer_simplex::<32, { 32 * 32 }, f32, _>(Min, &mut xi, &zi, &aij, &bj,),
+            integer_simplex::<32, { 32 * 32 }, f32, _>(&mut stack, Min, &mut xi, &zi, &aij, &bj,),
             Ok(Some(54.0)),
         );
     }

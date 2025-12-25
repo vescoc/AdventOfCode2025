@@ -50,9 +50,9 @@ targets:
 [Install espup](https://github.com/esp-rs/espup)
 
 targets:
-- xtensa-esp32-none-elf
-- xtensa-esp32s2-none-elf
-- xtensa-esp32s3-none-elf
+- xtensa-esp32-none-elf (esp32)
+- xtensa-esp32s2-none-elf (esp32-s2)
+- xtensa-esp32s3-none-elf (esp32-s3)
 
 ### rp-pico
 #### Build for rp-pico

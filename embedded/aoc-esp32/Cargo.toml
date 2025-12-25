@@ -11,7 +11,7 @@ esp32 = [
 	"esp-bootloader-esp-idf/esp32",
 	"esp-println/esp32",
 	"embedded-aoc/stack100k",
-	"embedded-aoc/f64",
+	"embedded-aoc/f32",
 ]
 
 esp32s2 = [
@@ -32,7 +32,7 @@ esp32s3 = [
 	"esp-bootloader-esp-idf/esp32s3",
 	"esp-println/esp32s3",
 	"embedded-aoc/alldays",
-	"embedded-aoc/f64",
+	"embedded-aoc/f32",
 ]
 
 esp32c3 = [
@@ -77,6 +77,7 @@ embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false
 [dev-dependencies]
 day10.workspace = true
 heapless.workspace = true
+simplex.workspace = true
 
 [lints]
 workspace = true

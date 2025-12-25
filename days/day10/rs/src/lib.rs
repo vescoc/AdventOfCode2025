@@ -4,7 +4,7 @@
 use rayon::prelude::*;
 
 use numset::Set;
-use simplex::{self, Float, integer_simplex};
+use simplex::{self, Float, HeaplessVisitedStack, integer_simplex};
 
 fn bfs_lights(lights: u16, buttons: &[u16]) -> u64 {
     let mut visited = [0u128; 9];
@@ -140,7 +140,18 @@ where
             })
             .count();
 
+        let mut stack = heapless::Vec::<_, 32>::new();
+        let mut headers = heapless::Vec::<_, { 32 * 32 }>::new();
+        let mut heap = heapless::Vec::<_, { 32 * 32 }>::new();
+
+        let mut stack = HeaplessVisitedStack::new(
+            stack.as_mut_view(),
+            headers.as_mut_view(),
+            heap.as_mut_view(),
+        );
+
         integer_simplex::<32, { 32 * 32 }, _, _>(
+            &mut stack,
             simplex::Min,
             &mut xi[..zi_len],
             &zi[..zi_len],
@@ -182,6 +193,16 @@ mod tests {
             82,
         );
     }
+
+	#[test]
+	fn test_part_2_bad_13() {
+		assert_eq!(
+			part_2::<f32>(
+				"[...#..#] (0,1,2,3,4) (2,4,5,6) (0,2,3) (0,3,4,5) (0,1,2,5,6) (1,3,4,5) (0) (0,1,2,6) (0,1,3,5,6) {60,37,61,40,35,28,31}",
+			),
+			71,
+		);
+	}
 
     #[cfg(feature = "input")]
     #[test]

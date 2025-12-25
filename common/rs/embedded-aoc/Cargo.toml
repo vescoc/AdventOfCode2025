@@ -41,14 +41,14 @@ stack100k = [
 ]
 
 stack64k = [
-    "stack10k",
+    "stack20k",
 
     "day04",
 
 	"day09",
 ]
 
-stack10k = [
+stack20k = [
     "stack6k",
 	
     "day10",
