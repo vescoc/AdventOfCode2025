@@ -25,7 +25,8 @@ day12 = ["dep:day12"]
 
 alldays = ["stack200k"]
 
-nofp = []
+f32 = []
+f64 = []
 
 stack200k = [
     "stack100k",

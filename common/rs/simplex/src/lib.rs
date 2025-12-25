@@ -303,33 +303,41 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, 
             }
 
             {
+                let mut found = false;
                 let mut new_partitions = partitions.clone();
                 if let Some((_, s, vv)) = new_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
                     *s = F::ONE;
                     *vv = v.f_floor();
+                    found = true;
                 } else {
                     new_partitions
                         .push((x, F::ONE, v.f_floor()))
                         .map_err(|_| Error::Oom)?;
                 }
 
-                if new_partitions != partitions && stack.iter().all(|p| p != &new_partitions) {
+                if (!found || check_partitions(&new_partitions, &partitions))
+                    && stack.iter().all(|p| check_partitions(&new_partitions, p))
+                {
                     stack.push(new_partitions).map_err(|_| Error::Oom)?;
                 }
             }
 
             {
+                let mut found = false;
                 let mut new_partitions = partitions.clone();
                 if let Some((_, s, vv)) = new_partitions.iter_mut().find(|(xx, _, _)| *xx == x) {
                     *s = -F::ONE;
                     *vv = v.f_ceil();
+                    found = true;
                 } else {
                     new_partitions
                         .push((x, -F::ONE, v.f_ceil()))
                         .map_err(|_| Error::Oom)?;
                 }
 
-                if new_partitions != partitions && stack.iter().all(|p| p != &new_partitions) {
+                if (!found || check_partitions(&new_partitions, &partitions))
+                    && stack.iter().all(|p| check_partitions(p, &new_partitions))
+                {
                     stack.push(new_partitions).map_err(|_| Error::Oom)?;
                 }
             }
@@ -351,6 +359,13 @@ pub fn integer_simplex<const BASES: usize, const SCRATCH_SIZE: usize, F: Float, 
     }
 
     Ok(incumbent_solution)
+}
+
+fn check_partitions<F: Float>(a: &[(usize, F, F)], b: &[(usize, F, F)]) -> bool {
+    a.len() != b.len()
+        || a.iter()
+            .zip(b)
+            .any(|(a, b)| a.0 != b.0 || (a.1 - b.1).abs() > F::EPS || (a.2 - b.2).abs() > F::EPS)
 }
 
 /// # Panics

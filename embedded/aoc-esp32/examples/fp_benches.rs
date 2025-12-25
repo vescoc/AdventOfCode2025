@@ -52,8 +52,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
         }
     }
 
-	log::info!("start benches");
-	
+    log::info!("start benches");
+
     bench("mul", mul);
     bench("div", div);
     bench("add", add);
@@ -62,8 +62,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
     bench("ceil", ceil);
     bench("floor", floor);
     bench("to i64", to_i64);
-	
-	log::info!("done benches");
+
+    log::info!("done benches");
 }
 
 #[allow(clippy::unit_arg)]

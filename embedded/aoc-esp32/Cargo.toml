@@ -11,7 +11,7 @@ esp32 = [
 	"esp-bootloader-esp-idf/esp32",
 	"esp-println/esp32",
 	"embedded-aoc/stack100k",
-	"embedded-aoc/nofp",
+	"embedded-aoc/f64",
 ]
 
 esp32s2 = [
@@ -22,6 +22,7 @@ esp32s2 = [
 	"esp-println/esp32s2",
 	"critical-section",
 	"embedded-aoc/stack100k",
+	"embedded-aoc/f32",
 ]
 
 esp32s3 = [
@@ -31,7 +32,7 @@ esp32s3 = [
 	"esp-bootloader-esp-idf/esp32s3",
 	"esp-println/esp32s3",
 	"embedded-aoc/alldays",
-	"embedded-aoc/nofp",
+	"embedded-aoc/f64",
 ]
 
 esp32c3 = [
@@ -41,6 +42,7 @@ esp32c3 = [
 	"esp-bootloader-esp-idf/esp32c3",
 	"esp-println/esp32c3",
 	"embedded-aoc/alldays",
+	"embedded-aoc/f32",
 ]
 
 esp32c6 = [
@@ -50,6 +52,7 @@ esp32c6 = [
 	"esp-bootloader-esp-idf/esp32c6",
 	"esp-println/esp32c6",
 	"embedded-aoc/alldays",
+	"embedded-aoc/f32",
 ]
 
 [dependencies]
@@ -70,6 +73,10 @@ log.workspace = true
 fugit.workspace = true
 
 embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["log", "nonblocking"] }
+
+[dev-dependencies]
+day10.workspace = true
+heapless.workspace = true
 
 [lints]
 workspace = true

@@ -21,7 +21,7 @@ static_cell.workspace = true
 defmt.workspace = true
 defmt-rtt = "1"
 
-embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["alldays", "defmt", "nonblocking"] }
+embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["alldays", "defmt", "nonblocking", "f32"] }
 cdcacm-io.workspace = true
 
 [lints]
