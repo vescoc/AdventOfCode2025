@@ -1,5 +1,4 @@
 #![feature(impl_trait_in_assoc_type)]
-
 #![no_std]
 #![no_main]
 
@@ -51,7 +50,12 @@ async fn main(spawner: embassy_executor::Spawner) {
         stack_high - stack_low
     );
 
+    #[cfg(not(feature = "overclock"))]
     let p = embassy_rp::init(embassy_rp::config::Config::default());
+    #[cfg(feature = "overclock")]
+    let p = embassy_rp::init(embassy_rp::config::Config::new(
+        embassy_rp::clocks::ClockConfig::system_freq(290_000_000).unwrap(),
+    ));
 
     let now = Now;
 

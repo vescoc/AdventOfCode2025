@@ -31,11 +31,21 @@ cd days/dayXY/rsui && trunk build --release --filehash false --public-url /Adven
 
 ## Embedded
 ### Install probe-rs-tools
-[Install probe-rs](https://probe.rs/)
+For flashing / running on rp-pico, rp-pico2, nRF52840-dk, stm32f3-discovery, stm32f4-disco
+and stm32h741zi-nucleo [install probe-rs](https://probe.rs/).
 
 Example:
 ```bash
 cargo binstall probe-rs-tools
+```
+
+### Install espflash
+For flashing / running on esp32, esp32s2, esp32s3, esp32c3, esp32c6
+[install espflash](https://github.com/esp-rs/espflash/blob/main/espflash/README.md).
+
+Example:
+```bash
+cargo binstall espflash
 ```
 
 ### Install Rust nightly
@@ -54,76 +64,149 @@ targets:
 - xtensa-esp32s2-none-elf (esp32-s2)
 - xtensa-esp32s3-none-elf (esp32-s3)
 
+### How to invoke the MCU
+1. Prepare a file like this:
+```raw
+START INPUT DAY: XY
+<data>
+END INPUT
+```
+Example data from day 1, file `day01-example.txt`:
+```raw
+START INPUT DAY: 01
+L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
+END INPUT
+```
+2. Identify the serial device. Example for linux: `/dev/ttyUSB0` or `/dev/ttyACM0`.
+3. Configure the serial device (maybe check if you need root/admin permissions).
+For some MCU you need a serial adapter.
+Example (linux):
+```bash
+stty -F /dev/ttyUSB0 raw 115200
+```
+4. Get data from the serial device.
+Example (linux):
+```bash
+cat /dev/ttyUSB0
+```
+5. Send the data to the serial device.
+Example (linux):
+```bash
+cat data01-example.txt > /dev/ttyUSB0
+```
+6. See the results at point 4.
+7. Go to point 5 with other formatted input data for the same or other AoC day.
+8. If the device does not respond in about max ten seconds probably it crashed.
+Check your input data. Reset the device and retry. If you have problem with your data,
+please create an issue.
+8. Enjoy.
+
 ### rp-pico
+- target CPU: Cortex-M0+
+- system clock: 200Mhz with feature overclock, default 124Mhz
+
 #### Build for rp-pico
 ```bash
-cargo +nightly build -r --target thumbv6m-none-eabi -p rp-pico -Z build-std=core
+cargo +nightly --config target.thumbv6m-none-eabi.rustflags='["-C","target-cpu=cortex-m0plus"]' build-rp-pico
 ```
 
-#### Run on rp-pico
+#### Run on rp-pico (125Mhz)
 ```bash
-cargo +nightly run -r --target thumbv6m-none-eabi -p rp-pico2 -Z build-std=core -- --chip RP2040
+cargo +nightly --config target.thumbv6m-none-eabi.rustflags='["-C","target-cpu=cortex-m0plus"]' run-rp-pico
+```
+#### Run on rp-pico overclock (200Mhz)
+```bash
+cargo +nightly --config target.thumbv6m-none-eabi.rustflags='["-C","target-cpu=cortex-m0plus"]' run-rp-pico-overclock
 ```
 
 ### rp-pico2
+- target CPU: Cortex-M33
+- system clock: 290Mhz with feature overclock, default 150Mhz
+
 #### Build for rp-pico2
 ```bash
-cargo +nightly build -r --target thumbv8m.main-none-eabihf -p rp-pico2 -Z build-std=core
+cargo +nightly --config target.thumbv8m.main-none-eabihf.rustflags='["-C","target-cpu=cortex-m33"]' build-rp-pico2
 ```
 
-#### Run on rp-pico2
+#### Run on rp-pico2 (150Mhz)
 ```bash
-cargo +nightly run -r --target thumbv8m.main-none-eabihf -p rp-pico2 -Z build-std=core -- --chip RP235x
+cargo +nightly --config target.thumbv8m.main-none-eabihf.rustflags='["-C","target-cpu=cortex-m33"]' run-rp-pico2
+```
+
+#### Run on rp-pico2 overclock (290Mhz)
+```bash
+cargo +nightly --config target.thumbv8m.main-none-eabihf.rustflags='["-C","target-cpu=cortex-m33"]' run-rp-pico2-overclock
 ```
 
 ### stm32f3-discovery
+- target CPU: Cortex-M4F
+- system clock: 72Mhz
+
 #### Build for stm32f3-discovery
 ```bash
-cargo +nightly build -r --target thumbv7em-none-eabihf -p stm32f3-discovery -Z build-std=core
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' build-stm32f3-discovery
 ```
 
 #### Run on stm32f3-discovery
 ```bash
-cargo +nightly run -r --target thumbv7em-none-eabihf -p stm32f3-discovery -Z build-std=core -- --chip STM32F303VC
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' run-stm32f3-discovery
 ```
 
 ### stm32f411e-disco
+- target CPU: Cortex-M4F
+- system clock: 96Mhz
+
 #### Build for stm32f411e-disco
 ```bash
-cargo +nightly build -r --target thumbv7em-none-eabihf -p stm32f411e-disco -Z build-std=core
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' build-stm32f411e-disco
 ```
 
 #### Run on stm32f411e-disco
 ```bash
-cargo +nightly run -r --target thumbv7em-none-eabihf -p stm32f411e-disco -Z build-std=core -- --chip STM32F411VE
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' run-stm32f411e-disco
 ```
 
 ### stm32h743zi-nucleo
+- target CPU: Cortex-M7F
+- system clock: 400Mhz
+
 #### Build for stm32h743zi-nucleo
 ```bash
-cargo +nightly build -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z build-std=core
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m7"]' build-stm32h743zi-nucleo
 ```
 
 #### Run on stm32h743zi-nucleo
 ```bash
-cargo +nightly run -r --target thumbv7em-none-eabihf -p stm32h743zi-nucleo -Z build-std=core -- --chip STM32H743ZI
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m7"]' run-stm32h743zi-nucleo
 ```
 
 ### nrf52840-dk
+- target CPU: Cortex-M4F
+- system clock: 64Mhz
+
 #### Build for nrf52840-dk
 ```bash
-cargo +nightly build -r --target thumbv7em-none-eabihf -p nrf52840-dk -Z build-std=core
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' build-nrf52840-dk
 ```
 
 #### Run on nrf52840-dk
 ```bash
-cargo +nightly run -r --target thumbv7em-none-eabihf -p nrf52840-dk -Z build-std=core -- --chip nRF52840_xxAA
+cargo +nightly --config target.thumbv7em-none-eabihf.rustflags='["-C","target-cpu=cortex-m4"]' run-nrf52840-dk
 ```
 
 ### esp32
 #### Build for esp32
 ```bash
-cargo +esp build -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core --lib --bins
+cargo +esp --config target.xtensa-esp32-none-elf.rustflags='["-C","target-cpu=esp32"]' build-esp32
 ```
 
 #### Run on esp32
@@ -133,13 +216,13 @@ Serial adapter:
 - GND: esp32 GND
 
 ```bash
-cargo +esp run -r --target xtensa-esp32-none-elf -p aoc-esp32 -F esp32 -Z build-std=core
+cargo +esp --config target.xtensa-esp32-none-elf.rustflags='["-C","target-cpu=esp32"]' run-esp32
 ```
 
 ### esp32s2 (mini)
 #### Build for esp32s2 (mini)
 ```bash
-cargo +esp build -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core --lib --bins
+cargo +esp --config target.xtensa-esp32s2-none-elf.rustflags='["-C","target-cpu=esp32s2"]' build-esp32s2
 ```
 
 #### Run on esp32s2 (mini)
@@ -154,16 +237,22 @@ Logging serial adapter:
 - GND: esp32s2 GND
 - Led at PIN 15 on when there is an error
 
-For flashing esp32s2 (mini): hold Boot button, bold Reset button, release Reset button, release Boot button, this make the MCU on boot mode.
+For flashing esp32s2 (mini): hold Boot button, hold Reset button, release Reset button, release Boot button, this make the MCU on boot mode.
 ```bash
-cargo +esp run -r --target xtensa-esp32s2-none-elf -p aoc-esp32 -F esp32s2 -Z build-std=core -- --no-stub -b no-reset
+cargo +esp --config target.xtensa-esp32s2-none-elf.rustflags='["-C","target-cpu=esp32s2"]' run-esp32s2 -- --no-stub -b no-reset
 ```
 After flashing, push Reset button for resetting.
+
+For logging identify the second serial adapter (Logging serial adapter), example `/dev/ttyUSB1`, and set (maybe you need root/admin permissions):
+```bash
+stty -F /dev/ttyUSB1 raw 115200
+cat /dev/ttyUSB1
+```
 
 ### esp32s3
 #### Build for esp32s3
 ```bash
-cargo +esp build -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core --lib --bins
+cargo +esp --config target.xtensa-esp32s3-none-elf.rustflags='["-C","target-cpu=esp32s3"]' build-esp32s3
 ```
 
 #### Run on esp32s3
@@ -173,13 +262,13 @@ Serial adapter:
 - GND: esp32s3 GND
 
 ```bash
-cargo +esp run -r --target xtensa-esp32s3-none-elf -p aoc-esp32 -F esp32s3 -Z build-std=core
+cargo +esp --config target.xtensa-esp32s3-none-elf.rustflags='["-C","target-cpu=esp32s3"]' run-esp32s3
 ```
 
 ### esp32c3
 #### Build for esp32c3
 ```bash
-cargo +nightly build -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core --lib --bins
+cargo +nightly --config target.riscv32imc-unknown-none-elf.rustflags='["-C","target-cpu=generic-rv32"]' build-esp32c3
 ```
 
 #### Run on esp32c3
@@ -189,13 +278,13 @@ Serial adapter:
 - GND: esp32 GND
 
 ```bash
-cargo +nightly run -r --target riscv32imc-unknown-none-elf -p aoc-esp32 -F esp32c3 -Z build-std=core
+cargo +nightly --config target.riscv32imc-unknown-none-elf.rustflags='["-C","target-cpu=generic-rv32"]' run-esp32c3
 ```
 
 ### esp32c6
 #### Build for esp32c6
 ```bash
-cargo +nightly build -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core --lib --bins
+cargo +nightly --config target.riscv32imac-unknown-none-elf.rustflags='["-C","target-cpu=generic-rv32"]' build-esp32c6
 ```
 
 #### Run on esp32c6
@@ -205,5 +294,5 @@ Serial adapter:
 - GND: esp32 GND
 
 ```bash
-cargo +nightly run -r --target riscv32imac-unknown-none-elf -p aoc-esp32 -F esp32c6 -Z build-std=core
+cargo +nightly --config target.riscv32imac-unknown-none-elf.rustflags='["-C","target-cpu=generic-rv32"]' run-esp32c6
 ```

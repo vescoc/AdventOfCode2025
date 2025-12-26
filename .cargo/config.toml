@@ -1,3 +1,235 @@
+[alias]
+# Aliases for rp-pico
+build-rp-pico = [
+	"build",
+	"-r",
+	"--target", "thumbv6m-none-eabi",
+	"-p", "rp-pico",
+	"-Z", "build-std=core",
+]
+
+run-rp-pico = [
+	"run",
+	"-r",
+	"--target", "thumbv6m-none-eabi",
+	"-p", "rp-pico",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "RP2040",
+]
+
+run-rp-pico-overclock = [
+	"run",
+	"-r",
+	"--target", "thumbv6m-none-eabi",
+	"-p", "rp-pico",
+	"-F", "overclock",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "RP2040",
+]
+
+# Aliases for rp-pico2
+build-rp-pico2 = [
+	"build",
+	"-r",
+	"--target", "thumbv8m.main-none-eabihf",
+	"-p", "rp-pico2",
+	"-Z", "build-std=core",
+]
+
+run-rp-pico2 = [
+	"run",
+	"-r",
+	"--target", "thumbv8m.main-none-eabihf",
+	"-p", "rp-pico2",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "RP235x",
+]
+
+run-rp-pico2-overclock = [
+	"run",
+	"-r",
+	"--target", "thumbv8m.main-none-eabihf",
+	"-p", "rp-pico2",
+	"-F", "overclock",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "RP235x",
+]
+
+# Aliases for stm32f3-discovery
+build-stm32f3-discovery = [
+	"build",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32f3-discovery",
+	"-Z", "build-std=core",
+]
+
+run-stm32f3-discovery = [
+	"run",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32f3-discovery",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "STM32F303VC",
+]
+
+# Aliases for stm32f411e-disco
+build-stm32f411e-disco = [
+	"build",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32f411e-disco",
+	"-Z", "build-std=core",
+]
+
+run-stm32f411e-disco = [
+	"run",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32f411e-disco",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "STM32F411VE",
+]
+
+# Aliases for stm32h743zi-nucleo
+build-stm32h743zi-nucleo = [
+	"build",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32h743zi-nucleo",
+	"-Z", "build-std=core",
+]
+
+run-stm32h743zi-nucleo = [
+	"run",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "stm32h743zi-nucleo",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "STM32H743ZI",
+]
+
+# Aliases for nRF52840-DK
+build-nrf52840-dk = [
+	"build",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "nrf52840-dk",
+	"-Z", "build-std=core",
+]
+
+run-nrf52840-dk = [
+	"run",
+	"-r",
+	"--target", "thumbv7em-none-eabihf",
+	"-p", "nrf52840-dk",
+	"-Z", "build-std=core",
+	"--",
+	"--chip", "nRF52840_xxAA",
+]
+
+# Aliases for esp32
+build-esp32 = [
+	"build",
+	"-r",
+	"--target", "xtensa-esp32-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32",
+	"-Z", "build-std=core",
+]
+
+run-esp32 = [
+	"run",
+	"-r",
+	"--target", "xtensa-esp32-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32",
+	"-Z", "build-std=core",
+]
+
+# Aliases for esp32s2
+build-esp32s2 = [
+	"build",
+	"-r",
+	"--target", "xtensa-esp32s2-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32s2",
+	"-Z", "build-std=core",
+]
+
+run-esp32s2 = [
+	"run",
+	"-r",
+	"--target", "xtensa-esp32s2-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32s2",
+	"-Z", "build-std=core",
+]
+
+# Aliases for esp32s3
+build-esp32s3 = [
+	"build",
+	"-r",
+	"--target", "xtensa-esp32s3-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32s3",
+	"-Z", "build-std=core",
+]
+
+run-esp32s3 = [
+	"run",
+	"-r",
+	"--target", "xtensa-esp32s3-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32s3",
+	"-Z", "build-std=core",
+]
+
+# Aliases for esp32c3
+build-esp32c3 = [
+	"build",
+	"-r",
+	"--target", "riscv32imc-unknown-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32c3",
+	"-Z", "build-std=core",
+]
+
+run-esp32c3 = [
+	"run",
+	"-r",
+	"--target", "riscv32imc-unknown-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32c3",
+	"-Z", "build-std=core",
+]
+
+# Aliases for esp32c6
+build-esp32c6 = [
+	"build",
+	"-r",
+	"--target", "riscv32imac-unknown-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32c6",
+	"-Z", "build-std=core",
+]
+
+run-esp32c6 = [
+	"run",
+	"-r",
+	"--target", "riscv32imac-unknown-none-elf",
+	"-p", "aoc-esp32",
+	"-F", "esp32c6",
+	"-Z", "build-std=core",
+]
+
 [build]
 rustflags = ["-C", "target-cpu=native"]
 
@@ -7,75 +239,26 @@ rustflags = ["-C", "target-cpu=generic"]
 [target.thumbv6m-none-eabi]
 runner = "probe-rs run"
 
-rustflags = [
-          "-C", "link-arg=--nmagic",
-          "-C", "link-arg=-Tlink.x",
-          "-C", "link-arg=-Tdefmt.x",
-		  "-C", "target-cpu=generic"
-]
-
 [target.thumbv7em-none-eabihf]
 runner = "probe-rs run"
-
-rustflags = [
-          "-C", "link-arg=--nmagic",
-          "-C", "link-arg=-Tlink.x",
-          "-C", "link-arg=-Tdefmt.x",
-		  "-C", "target-cpu=generic"
-]
 
 [target.thumbv8m.main-none-eabihf]
 runner = "probe-rs run"
 
-rustflags = [
-          "-C", "link-arg=--nmagic",
-          "-C", "link-arg=-Tlink.x",
-          "-C", "link-arg=-Tdefmt.x",
-          "-C", "target-cpu=cortex-m33",
-]
-
 [target.xtensa-esp32-none-elf]
 runner = "espflash flash --monitor"
-
-rustflags = [
-    "-C", "link-arg=-Tlinkall.x",
-    "-C", "link-arg=-nostartfiles",
-	"-C", "target-cpu=esp32",
-]
 
 [target.xtensa-esp32s2-none-elf]
 runner = "espflash flash --monitor"
 
-rustflags = [
-    "-C", "link-arg=-Tlinkall.x",
-    "-C", "link-arg=-nostartfiles",
-	"-C", "target-cpu=esp32s2",
-]
-
 [target.xtensa-esp32s3-none-elf]
 runner = "espflash flash --monitor"
-
-rustflags = [
-    "-C", "link-arg=-Tlinkall.x",
-    "-C", "link-arg=-nostartfiles",
-	"-C", "target-cpu=esp32s3",
-]
 
 [target.riscv32imc-unknown-none-elf]
 runner = "espflash flash --monitor"
 
-rustflags = [
-    "-C", "link-arg=-Tlinkall.x",
-	"-C", "target-cpu=generic",
-]
-
 [target.riscv32imac-unknown-none-elf]
 runner = "espflash flash --monitor"
-
-rustflags = [
-    "-C", "link-arg=-Tlinkall.x",
-	"-C", "target-cpu=generic",
-]
 
 [env]
 DEFMT_LOG = "debug"

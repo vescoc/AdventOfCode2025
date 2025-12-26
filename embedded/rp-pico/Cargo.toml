@@ -3,6 +3,9 @@ name = "rp-pico"
 version.workspace = true
 edition.workspace = true
 
+[features]
+overclock = []
+
 [dependencies]
 defmt.workspace = true
 static_cell.workspace = true
