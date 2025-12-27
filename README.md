@@ -133,7 +133,7 @@ please create an issue.
 
 ### rp-pico
 - target CPU: Cortex-M0+
-- system clock: 200Mhz with feature overclock, default 124Mhz
+- system clock: 200Mhz with feature overclock, default 125Mhz
 
 #### Build for rp-pico
 ```bash
