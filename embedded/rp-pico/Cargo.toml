@@ -5,6 +5,7 @@ edition.workspace = true
 
 [features]
 overclock = []
+temp = []
 
 [dependencies]
 defmt.workspace = true
