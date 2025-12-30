@@ -1,0 +1,32 @@
+[package]
+name = "aoc-avr"
+version.workspace = true
+edition.workspace = true
+
+[features]
+arduino-mega2560 = [
+    "arduino-hal/arduino-mega2560",
+	"embedded-aoc/stack3k",
+	"embedded-aoc/f32",
+]
+
+[dependencies]
+avr-device = "0.8"
+nb = "1"
+portable-atomic = { version = "1", default-features = false, features = ["fallback", "unsafe-assume-single-core"] }
+
+heapless.workspace = true
+
+embedded-io.workspace = true
+
+log.workspace = true
+fugit.workspace = true
+
+embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["buffer1k", "minimal"] }
+
+[dependencies.arduino-hal]
+git = "https://github.com/Rahix/avr-hal"
+branch = "main"
+
+[lints]
+workspace = true

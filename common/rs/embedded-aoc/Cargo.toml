@@ -4,11 +4,17 @@ version.workspace = true
 edition.workspace = true
 
 [features]
+default = ["buffer25k"]
+
+buffer25k = []
+buffer1k = []
+
 defmt = ["dep:defmt"]
 log = ["dep:log"]
 
 blocking = ["dep:embedded-io"]
 nonblocking = ["dep:embedded-io-async", "dep:static_cell"]
+minimal = ["dep:embedded-io"]
 
 day01 = ["dep:day01"]
 day02 = ["dep:day02"]

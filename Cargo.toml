@@ -12,6 +12,7 @@ members = [
     "common/rs/cdcacm-io",
     "common/rs/embedded-aoc",
 
+    "embedded/aoc-avr",
     "embedded/aoc-esp32",
     "embedded/nrf52840-dk",
     "embedded/rp-pico",
@@ -137,3 +138,7 @@ large_futures = "deny"
 debug = true
 codegen-units = 1
 lto = 'fat'
+
+[profile.release-abort]
+inherits = "release"
+panic = "abort"

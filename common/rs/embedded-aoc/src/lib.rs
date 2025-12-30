@@ -1,10 +1,9 @@
 #![no_std]
 
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
-use core::fmt::Write as _;
-
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
+#[cfg(any(feature = "blocking", feature = "nonblocking", feature = "minimal"))]
 use core::fmt;
+
+use core::marker;
 
 use fugit::{Duration, Instant};
 
@@ -26,16 +25,30 @@ mod nonblocking;
 #[cfg(feature = "nonblocking")]
 pub use nonblocking::run;
 
+#[cfg(feature = "minimal")]
+mod minimal;
+#[cfg(feature = "minimal")]
+pub use minimal::run;
+
 #[allow(dead_code)]
 type PartResult = HLString<64>;
 
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
+#[cfg(any(feature = "blocking", feature = "nonblocking", feature = "minimal"))]
 const START_INPUT_TAG: &str = "START INPUT DAY: ";
 
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
+#[cfg(any(feature = "blocking", feature = "nonblocking", feature = "minimal"))]
 const END_INPUT_TAG: &str = "END INPUT";
 
+#[cfg(feature = "buffer25k")]
 const BUFFER_SIZE: usize = 25 * 1024;
+
+#[cfg(feature = "buffer1k")]
+const BUFFER_SIZE: usize = 1024;
+
+#[must_use]
+pub fn check_eof(buffer: &[u8]) -> Option<usize> {
+    buffer.iter().position(|b| *b == 0x04)
+}
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Copy, Clone)]
@@ -66,10 +79,10 @@ pub enum Day {
     Day12,
 }
 
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
+#[cfg(any(feature = "blocking", feature = "nonblocking", feature = "minimal"))]
 impl Day {
     fn to_string(result: &mut PartResult, value: impl fmt::Display) -> Result<(), fmt::Error> {
-        write!(result, "{value}")
+        fmt::write(result, format_args!("{value}"))
     }
 
     fn part_1(self, result: &mut PartResult, input: &str) -> Result<(), fmt::Error> {
@@ -92,7 +105,7 @@ impl Day {
             Day::Day08 => Self::to_string(result, day08::part_1::<1000>(input)),
             #[cfg(feature = "day09")]
             Day::Day09 => Self::to_string(result, day09::part_1(input)),
-			#[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
+            #[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
             Day::Day10 => Self::to_string(result, day10::part_1(input)),
             #[cfg(feature = "day11")]
             Day::Day11 => Self::to_string(result, day11::part_1(input)),
@@ -121,9 +134,9 @@ impl Day {
             Day::Day08 => Self::to_string(result, day08::part_2(input)),
             #[cfg(feature = "day09")]
             Day::Day09 => Self::to_string(result, day09::part_2(input)),
-			#[cfg(all(feature = "day10", feature = "f32"))]
+            #[cfg(all(feature = "day10", feature = "f32"))]
             Day::Day10 => Self::to_string(result, day10::part_2::<f32>(input)),
-			#[cfg(all(feature = "day10", feature = "f64"))]
+            #[cfg(all(feature = "day10", feature = "f64"))]
             Day::Day10 => Self::to_string(result, day10::part_2::<f64>(input)),
             #[cfg(feature = "day11")]
             Day::Day11 => Self::to_string(result, day11::part_2(input)),
@@ -159,7 +172,7 @@ impl core::str::FromStr for Day {
             Some(8) => Ok(Day::Day08),
             #[cfg(feature = "day09")]
             Some(9) => Ok(Day::Day09),
-			#[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
+            #[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
             Some(10) => Ok(Day::Day10),
             #[cfg(feature = "day11")]
             Some(11) => Ok(Day::Day11),
@@ -171,7 +184,7 @@ impl core::str::FromStr for Day {
     }
 }
 
-#[cfg(any(feature = "blocking", feature = "nonblocking"))]
+#[cfg(any(feature = "blocking", feature = "nonblocking", feature = "minimal"))]
 impl fmt::Display for Day {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let day = match self {
@@ -193,7 +206,7 @@ impl fmt::Display for Day {
             Day::Day08 => 8,
             #[cfg(feature = "day09")]
             Day::Day09 => 9,
-			#[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
+            #[cfg(all(feature = "day10", any(feature = "f32", feature = "f64")))]
             Day::Day10 => 10,
             #[cfg(feature = "day11")]
             Day::Day11 => 11,
@@ -225,7 +238,7 @@ pub trait Handler<T, const NOM: u32, const DENOM: u32> {
 
 #[derive(Default)]
 pub struct DummyHandler<T, const NOM: u32, const DENOM: u32> {
-    _t: core::marker::PhantomData<T>,
+    _t: marker::PhantomData<T>,
 }
 
 impl<T, const NOM: u32, const DENOM: u32> Handler<T, NOM, DENOM> for DummyHandler<T, NOM, DENOM> {}

@@ -72,7 +72,7 @@ critical-section = { version = "1.2", optional = true }
 log.workspace = true
 fugit.workspace = true
 
-embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["log", "nonblocking"] }
+embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["buffer25k", "log", "nonblocking"] }
 
 [dev-dependencies]
 day10.workspace = true

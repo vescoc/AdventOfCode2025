@@ -230,6 +230,25 @@ run-esp32c6 = [
 	"-Z", "build-std=core",
 ]
 
+# Aliases for arduino-mega2560
+build-arduino-mega2560 = [
+	"build",
+	"--profile", "release-abort",
+	"--target", "avr-none",
+	"-p", "aoc-avr",
+	"-F", "arduino-mega2560",
+	"-Z", "build-std=core",
+]
+
+run-arduino-mega2560 = [
+	"run",
+	"--profile", "release-abort",
+	"--target", "avr-none",
+	"-p", "aoc-avr",
+	"-F", "arduino-mega2560",
+	"-Z", "build-std=core",
+]
+
 [build]
 rustflags = ["-C", "target-cpu=native"]
 
@@ -259,6 +278,9 @@ runner = "espflash flash --monitor"
 
 [target.riscv32imac-unknown-none-elf]
 runner = "espflash flash --monitor"
+
+[target.avr-none]
+runner = "ravedude"
 
 [env]
 DEFMT_LOG = "debug"

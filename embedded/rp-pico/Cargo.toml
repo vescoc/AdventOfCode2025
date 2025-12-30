@@ -20,7 +20,7 @@ embassy-usb = "0.5.0"
 fugit = { version = "0.3", features = ["defmt"] }
 portable-atomic = { version = "1.12", features = ["critical-section"] }
 
-embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["alldays", "defmt", "nonblocking", "f32"] }
+embedded-aoc = { path = "../../common/rs/embedded-aoc", default-features = false, features = ["buffer25k", "alldays", "defmt", "nonblocking", "f32"] }
 cdcacm-io.workspace = true
 
 [lints]

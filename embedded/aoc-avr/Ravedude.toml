@@ -1,0 +1,4 @@
+[general]
+board = "mega2560"
+serial-baudrate = 57600
+open-console = true

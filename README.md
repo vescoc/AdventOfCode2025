@@ -69,6 +69,11 @@ Example:
 cargo binstall espflash
 ```
 
+### Install ravedude & toolchain for avr
+For flashing / running on arduino-atmega2560 follow the instructions on
+[this site](https://github.com/Rahix/avr-hal).
+
+
 ### Install Rust nightly
 targets:
 - thumbv6m-none-eabi (rp-pico) 
@@ -76,6 +81,7 @@ targets:
 - thumbv6m-none-eabi (rp-pico2)
 - riscv32imc-unknown-none-elf (esp32-c3)
 - riscv32imac-unknown-none-elf (esp32-c6)
+- avr-none (arduino-atmega2560)
 
 ### Install Rust esp32 toolkit
 [Install espup](https://github.com/esp-rs/espup)
@@ -91,7 +97,10 @@ targets:
 START INPUT DAY: XY
 <data>
 END INPUT
+^D
 ```
+The last character is Ctrl-D (End of File).
+
 Example data from day 1, file `day01-example.txt`:
 ```raw
 START INPUT DAY: 01
@@ -106,6 +115,7 @@ L99
 R14
 L82
 END INPUT
+^D
 ```
 2. Identify the serial device. Example for linux: `/dev/ttyUSB0` or `/dev/ttyACM0`.
 3. Configure the serial device (maybe check if you need root/admin permissions).
@@ -316,4 +326,27 @@ Serial adapter:
 
 ```bash
 cargo +nightly --config target.riscv32imac-unknown-none-elf.rustflags='["-C","target-cpu=generic-rv32"]' run-esp32c6
+```
+
+### arduino-mega2560
+#### Build for arduino-mega2560
+```bash
+cargo +nightly --config target.avr-none.rustflags='["-C","target-cpu=atmega2560"]' build-arduino-mega2560
+```
+
+#### Run on arduino-mega2560
+Serial adapter for feeding inputs and see the output:
+- TX: arduino mega2560 PIN 19 (arduino mega2560 RX out)
+- RX: arduino mega2560 PIN 18 (arduino mega2560 TX out)
+- GND: arduino mega2560 GND
+
+The serial communication is at 9600 baud, esample:
+```bash
+stty -F /dev/ttyUSB0 raw 9600
+```
+
+The serial console (pins 0 and 1) is configured at 57600 baud.
+
+```bash
+cargo +nightly --config target.avr-none.rustflags='["-C","target-cpu=atmega2560"]' run-arduino-mega2560
 ```

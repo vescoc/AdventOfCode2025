@@ -6,9 +6,8 @@ use embedded_io_async::{Read, Write};
 type Response = heapless::String<255>;
 
 use crate::{
-	BUFFER_SIZE,
-    Day, Duration, END_INPUT_TAG, Handler, Instant, PartResult, START_INPUT_TAG, Timer, info,
-    trace, warn,
+    BUFFER_SIZE, Day, Duration, END_INPUT_TAG, Handler, Instant, PartResult, START_INPUT_TAG,
+    Timer, check_eof, info, trace, warn,
 };
 
 /// # Panics
@@ -41,18 +40,21 @@ where
                 Err(_err) => {
                     #[cfg(feature = "log")]
                     warn!("error reading: {_err:?}");
+                    break;
                 }
                 Ok(0) => {
                     trace!("reading 0 bytes");
                 }
                 Ok(count) => {
-                    debug_assert!(length + count <= buffer.len(), "invalid count");
-
+                    let eof = check_eof(&buffer[length..length + count])
+                        .map(|position| position + length);
                     length += count;
 
-                    if let Ok(input) = core::str::from_utf8(&buffer[..length]) {
-                        match (input.find(START_INPUT_TAG), input.find(END_INPUT_TAG)) {
-                            (Some(start_position), Some(end_position)) => {
+                    if let Some(eof) = eof {
+                        if let Ok(input) = core::str::from_utf8(&buffer[..eof]) {
+                            if let Some(start_position) = input.find(START_INPUT_TAG)
+                                && let Some(end_position) = input.find(END_INPUT_TAG)
+                            {
                                 let Ok(day) =
                                     input[start_position + START_INPUT_TAG.len()..].parse::<Day>()
                                 else {
@@ -120,22 +122,17 @@ where
                                 )
                                 .ok();
                                 tx.write_all(response.as_bytes()).await.ok();
-
-                                break;
-                            }
-                            (None, Some(_)) => {
+                            } else {
                                 warn!("invalid input");
 
                                 handler.invalid_input();
 
                                 tx.write_all(b"invalid input\r\n").await.ok();
-
-                                break;
                             }
-                            _ => {}
+                        } else {
+                            warn!("invalid utf8 data");
                         }
-                    } else {
-                        warn!("invalid utf8 data");
+
                         break;
                     }
                 }
