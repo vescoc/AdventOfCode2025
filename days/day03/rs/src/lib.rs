@@ -3,18 +3,6 @@
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
-#[allow(clippy::cast_possible_truncation)]
-const POW: [u64; 12] = const {
-    let mut r = [0_u64; 12];
-
-    let mut i = 0;
-    while i < 12 {
-        r[i] = 10_u64.pow(i as u32);
-        i += 1;
-    }
-    r
-};
-
 /// # Panics
 #[must_use]
 fn solve<const SIZE: usize>(data: &str) -> u64 {
@@ -28,7 +16,7 @@ fn solve<const SIZE: usize>(data: &str) -> u64 {
         let line = line.as_bytes();
 
         let mut current = [0; SIZE];
-        let mut max = 0;
+        let mut max = u64::MIN;
         for battery in line.iter().map(|value| u64::from(value - b'0')) {
             for i in 0..SIZE {
                 let candidate_max = current
@@ -36,10 +24,7 @@ fn solve<const SIZE: usize>(data: &str) -> u64 {
                     .enumerate()
                     .filter_map(|(ii, value)| if i == ii { None } else { Some(*value) })
                     .chain(core::iter::once(battery))
-                    .rev()
-                    .enumerate()
-                    .map(|(e, value)| value * POW[e])
-                    .sum::<u64>();
+                    .fold(0, |acc, value| acc * 10 + value);
                 if candidate_max > max {
                     current.copy_within(i + 1.., i);
                     current[SIZE - 1] = battery;
