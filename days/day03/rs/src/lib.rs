@@ -19,12 +19,14 @@ fn solve<const SIZE: usize>(data: &str) -> u64 {
         let mut max = u64::MIN;
         for battery in line.iter().map(|value| u64::from(value - b'0')) {
             for i in 0..SIZE {
-                let candidate_max = current
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(ii, value)| if i == ii { None } else { Some(*value) })
-                    .chain(core::iter::once(battery))
-                    .fold(0, |acc, value| acc * 10 + value);
+                let mut candidate_max = 0;
+                for (ii, value) in current.iter().enumerate() {
+                    if ii != i {
+                        candidate_max = candidate_max * 10 + value;
+                    }
+                }
+                candidate_max = candidate_max * 10 + battery;
+
                 if candidate_max > max {
                     current.copy_within(i + 1.., i);
                     current[SIZE - 1] = battery;
